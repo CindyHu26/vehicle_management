@@ -1,0 +1,17 @@
+# 檔案名稱: .gitignore
+
+# 排除 Python 虛擬環境
+.venv/
+
+# 排除 Python 緩存檔案
+__pycache__/
+*.pyc
+
+# 排除 IDE/編輯器 設定檔 (選用，但建議)
+.vscode/
+.idea/
+
+.env
+
+# 排除上傳檔案的目錄
+uploads/
