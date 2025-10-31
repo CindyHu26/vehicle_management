@@ -4,8 +4,6 @@ from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request # (!!!) 匯入 Request
 from fastapi.staticfiles import StaticFiles
 from starlette_admin.contrib.sqla import Admin 
-from starlette.middleware import Middleware
-from starlette_admin.i18n import I18nMiddleware
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -20,14 +18,6 @@ import uuid
 
 app = FastAPI(
     title="公務車管理系統",
-    # (!!!) 加入 middleware (用於 i18n)
-    middleware=[
-        Middleware(
-            I18nMiddleware,
-            default_locale="zh_TW", # 設定預設語系為繁體中文
-            language_cookie_name="lang",
-        )
-    ],
 )
 
 
