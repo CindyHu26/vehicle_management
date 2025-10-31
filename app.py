@@ -8,11 +8,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, Attachment, AttachmentEntity
 from admin_views import (
-VehicleAdmin, MaintenanceAdmin, InspectionAdmin, FeeAdmin, DisposalAdmin, AttachmentAdmin
+    EmployeeAdmin, VehicleAdmin, VehicleAssetLogAdmin, 
+    MaintenanceAdmin, InspectionAdmin, FeeAdmin, DisposalAdmin, AttachmentAdmin
 )
 from config import settings, UPLOAD_PATH
+import uuid # (!!!) 確保 uuid 被匯入
 
-# --- 修改 FastAPI 應用程式標題 ---
 app = FastAPI(title="公務車管理系統")
 
 
@@ -22,9 +23,11 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base.metadata.create_all(engine)
 
 
-# --- SQLAdmin 後台 (加入中文 title) ---
-admin = Admin(app=app, engine=engine, title="公務車管理後台") # <-- 加上中文標題
+# --- SQLAdmin 後台 ---
+admin = Admin(app=app, engine=engine, title="公務車管理後台")
+admin.add_view(EmployeeAdmin)
 admin.add_view(VehicleAdmin)
+admin.add_view(VehicleAssetLogAdmin)
 admin.add_view(MaintenanceAdmin)
 admin.add_view(InspectionAdmin)
 admin.add_view(FeeAdmin)
@@ -39,14 +42,12 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_PATH)), name="uploads")
 @app.post("/api/attachments/upload")
 async def upload_attachment(
     entity_type: AttachmentEntity = Form(..., description="關聯的實體類型 (例如: vehicle)"),
-    entity_id: str = Form(..., description="關聯紀錄的ID (UUID)"), # 目標紀錄的 UUID 字串
+    entity_id: str = Form(..., description="關聯紀錄的ID (UUID)"),
     file: UploadFile = File(..., description="要上傳的檔案"),
     description: str | None = Form(None, description="檔案說明 (可選)"),
 ):
     # 儲存檔案
     suffix = Path(file.filename).suffix
-    # 建立一個更安全的唯一檔案名稱
-    import uuid
     safe_name = f"{entity_type.value}_{entity_id}_{uuid.uuid4().hex}{suffix}"
     save_path = UPLOAD_PATH / safe_name
     
@@ -54,12 +55,8 @@ async def upload_attachment(
         with open(save_path, "wb") as f:
             f.write(await file.read())
     except Exception as e:
-        # 處理可能的寫入錯誤
         raise HTTPException(status_code=500, detail=f"無法儲存檔案: {e}")
 
-
-    # 建立附件紀錄
-    from sqlalchemy.dialects.postgresql import UUID as PG_UUID
     try:
         ent_uuid = uuid.UUID(entity_id)
     except ValueError:
@@ -70,8 +67,8 @@ async def upload_attachment(
         att = Attachment(
         entity_type=entity_type,
         entity_id=ent_uuid,
-        file_name=file.filename, # 儲存原始檔名
-        file_path=str(save_path.name), # 僅儲存檔案名稱，非完整路徑
+        file_name=file.filename,
+        file_path=str(save_path.name),
         description=description,
         )
         session.add(att)
@@ -79,7 +76,7 @@ async def upload_attachment(
         session.refresh(att)
         return {
         "id": str(att.id),
-        "file_url": f"/uploads/{save_path.name}", # 提供相對路徑
+        "file_url": f"/uploads/{save_path.name}",
         "file_name": att.file_name,
         }
 
