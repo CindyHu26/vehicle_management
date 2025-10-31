@@ -15,3 +15,10 @@ __pycache__/
 
 # 排除上傳檔案的目錄
 uploads/
+
+.csv
+.xls
+.xlsx
+.pdf
+.jpg
+.png
