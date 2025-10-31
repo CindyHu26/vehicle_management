@@ -1,15 +1,18 @@
 # admin_views.py
+import enum
+from typing import Any
+from markupsafe import Markup
 
-from sqladmin import ModelView
+# (!!!) 改為匯入 starlette_admin 的 ModelView
+from starlette_admin.contrib.sqla import ModelView
+
 from models import (
     Vehicle, Maintenance, Inspection, Fee, Disposal, Attachment, Employee, 
     VehicleAssetLog, AssetType, AssetStatus,
     VehicleType, VehicleStatus, MaintenanceCategory, InspectionKind, FeeType, AttachmentEntity
 )
-from typing import Any
-from markupsafe import Markup
 
-# --- (v13) Enum 中文翻譯字典 ---
+# --- (v13) Enum 中文翻譯字典 (這部分保持不變) ---
 VEHICLE_TYPE_MAP = {
     "car": "小客車",
     "motorcycle": "機車",
@@ -68,12 +71,20 @@ ASSET_STATUS_MAP = {
 }
 
 
-# --- 格式化函式 ---
-# (!!! 修正 !!!) 增加 str(value) 轉換，提高舊版相容性
-def format_vehicle_type(value: VehicleType) -> str:
-    return VEHICLE_TYPE_MAP.get(str(value), str(value))
-def format_vehicle_status(value: VehicleStatus) -> str:
-    val_str = str(value)
+# --- 格式化函式 (!!! 修正：處理 Enum 物件 !!!) ---
+
+def _get_enum_value(value: Any) -> str:
+    """輔助函式：安全地取得 Enum 的 value，如果不是 Enum 則轉為 str"""
+    if isinstance(value, enum.Enum):
+        return str(value.value)
+    return str(value)
+
+def format_vehicle_type(value: Any) -> str:
+    val_str = _get_enum_value(value)
+    return VEHICLE_TYPE_MAP.get(val_str, val_str)
+
+def format_vehicle_status(value: Any) -> str:
+    val_str = _get_enum_value(value)
     if val_str == "active":
         return Markup(f'<span class="badge bg-success">{VEHICLE_STATUS_MAP.get(val_str)}</span>')
     if val_str == "maintenance":
@@ -81,44 +92,76 @@ def format_vehicle_status(value: VehicleStatus) -> str:
     if val_str == "retired":
         return Markup(f'<span class="badge bg-danger">{VEHICLE_STATUS_MAP.get(val_str)}</span>')
     return VEHICLE_STATUS_MAP.get(val_str, val_str)
-def format_maintenance_category(value: MaintenanceCategory) -> str:
-    return MAINTENANCE_CATEGORY_MAP.get(str(value), str(value))
-def format_inspection_kind(value: InspectionKind) -> str:
-    return INSPECTION_KIND_MAP.get(str(value), str(value))
-def format_fee_type(value: FeeType) -> str:
-    return FEE_TYPE_MAP.get(str(value), str(value))
-def format_attachment_entity(value: AttachmentEntity) -> str:
-    return ATTACHMENT_ENTITY_MAP.get(str(value), str(value))
-def format_attachment_link(value: str) -> Markup:
-    if value:
-        return Markup(f'<a href="/uploads/{value}" target="_blank">{value}</a>')
-    return ""
-def format_asset_type(value: AssetType) -> str:
-    return ASSET_TYPE_MAP.get(str(value), str(value))
-def format_asset_status(value: AssetStatus) -> str:
+
+def format_maintenance_category(value: Any) -> str:
+    val_str = _get_enum_value(value)
+    return MAINTENANCE_CATEGORY_MAP.get(val_str, val_str)
+
+def format_inspection_kind(value: Any) -> str:
+    val_str = _get_enum_value(value)
+    return INSPECTION_KIND_MAP.get(val_str, val_str)
+
+def format_fee_type(value: Any) -> str:
+    val_str = _get_enum_value(value)
+    return FEE_TYPE_MAP.get(val_str, val_str)
+
+def format_attachment_entity(value: Any) -> str:
+    val_str = _get_enum_value(value)
+    return ATTACHMENT_ENTITY_MAP.get(val_str, val_str)
+
+def format_attachment_link(value: Any) -> Markup:
     val_str = str(value)
+    if val_str:
+        return Markup(f'<a href="/uploads/{val_str}" target="_blank">{val_str}</a>')
+    return ""
+
+def format_asset_type(value: Any) -> str:
+    val_str = _get_enum_value(value)
+    return ASSET_TYPE_MAP.get(val_str, val_str)
+
+def format_asset_status(value: Any) -> str:
+    val_str = _get_enum_value(value)
     if val_str == "assigned":
         return Markup(f'<span class="badge bg-info">{ASSET_STATUS_MAP.get(val_str)}</span>')
     if val_str == "returned":
         return Markup(f'<span class="badge bg-secondary">{ASSET_STATUS_MAP.get(val_str)}</span>')
     return ASSET_STATUS_MAP.get(val_str, val_str)
 
-# --- Admin Views (移除篩選器) ---
+# --- Admin Views (!!! 轉換為 starlette-admin !!!) ---
 
 class EmployeeAdmin(ModelView, model=Employee):
-    name = "員工"
-    name_plural = "員工管理"
+    name = "employee" # 英文唯一值
+    label = "員工管理" # 中文顯示
     icon = "fa-solid fa-users"
-    column_list = [Employee.name, Employee.phone, Employee.has_car_license, Employee.has_motorcycle_license]
-    column_searchable_list = [Employee.name]
-    form_columns = [Employee.name, Employee.phone, Employee.has_car_license, Employee.has_motorcycle_license]
+    
+    # 列表頁欄位 (原 column_list)
+    # 標籤會自動抓 models.py 裡的 info={"label": "..."}
+    fields = [
+        Employee.name, 
+        Employee.phone, 
+        Employee.has_car_license, 
+        Employee.has_motorcycle_license
+    ]
+    
+    # 搜尋欄位 (原 column_searchable_list)
+    searchable_fields = [Employee.name]
+    
+    # 表單欄位 (原 form_columns)
+    fields_for_form = [
+        Employee.name, 
+        Employee.phone, 
+        Employee.has_car_license, 
+        Employee.has_motorcycle_license
+    ]
     
 
 class VehicleAdmin(ModelView, model=Vehicle):
-    name = "車輛"
-    name_plural = "車輛管理"
+    name = "vehicle"
+    label = "車輛管理"
     icon = "fa-solid fa-car"
-    column_list = [
+    
+    # 列表頁欄位 (原 column_list)
+    fields = [
         Vehicle.plate_no,
         Vehicle.company, 
         Vehicle.vehicle_type,
@@ -129,17 +172,24 @@ class VehicleAdmin(ModelView, model=Vehicle):
         Vehicle.maintenance_interval,
         Vehicle.status
     ]
-    column_formatters = {
-        Vehicle.vehicle_type: format_vehicle_type,
-        Vehicle.status: format_vehicle_status,
+    
+    # 列表頁格式化 (原 column_formatters)
+    list_formatters = {
+        "vehicle_type": format_vehicle_type,
+        "status": format_vehicle_status,
     }
-    column_details_formatters = {
-        Vehicle.vehicle_type: format_vehicle_type,
-        Vehicle.status: format_vehicle_status,
+    
+    # 詳情頁格式化 (原 column_details_formatters)
+    detail_formatters = {
+        "vehicle_type": format_vehicle_type,
+        "status": format_vehicle_status,
     }
-    column_searchable_list = [Vehicle.plate_no, Vehicle.make, Vehicle.model, Vehicle.company]
-    # column_filters = ["company", "vehicle_type", "status", "user"] 
-    form_columns = [
+    
+    # 搜尋欄位 (原 column_searchable_list)
+    searchable_fields = [Vehicle.plate_no, Vehicle.make, Vehicle.model, Vehicle.company]
+    
+    # 表單欄位 (原 form_columns)
+    fields_for_form = [
         Vehicle.plate_no,
         Vehicle.company, 
         Vehicle.vehicle_type,
@@ -154,10 +204,11 @@ class VehicleAdmin(ModelView, model=Vehicle):
     ]
 
 class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog):
-    name = "車輛資產"
-    name_plural = "車輛資產日誌"
+    name = "vehicle_asset_log"
+    label = "車輛資產日誌"
     icon = "fa-solid fa-key"
-    column_list = [
+    
+    fields = [
         VehicleAssetLog.vehicle,
         VehicleAssetLog.log_date,
         VehicleAssetLog.asset_type,
@@ -165,17 +216,19 @@ class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog):
         VehicleAssetLog.status,
         VehicleAssetLog.user, # 保管人
     ]
-    column_formatters = {
-        VehicleAssetLog.asset_type: format_asset_type,
-        VehicleAssetLog.status: format_asset_status,
+    
+    list_formatters = {
+        "asset_type": format_asset_type,
+        "status": format_asset_status,
     }
-    column_details_formatters = {
-        VehicleAssetLog.asset_type: format_asset_type,
-        VehicleAssetLog.status: format_asset_status,
+    detail_formatters = {
+        "asset_type": format_asset_type,
+        "status": format_asset_status,
     }
-    column_searchable_list = [VehicleAssetLog.description]
-    # column_filters = ["vehicle", "log_date", "asset_type", "status", "user"]
-    form_columns = [
+    
+    searchable_fields = [VehicleAssetLog.description]
+    
+    fields_for_form = [
         VehicleAssetLog.vehicle,
         VehicleAssetLog.log_date,
         VehicleAssetLog.asset_type,
@@ -186,10 +239,11 @@ class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog):
     ]
 
 class MaintenanceAdmin(ModelView, model=Maintenance):
-    name = "保養維修"
-    name_plural = "保養維修紀錄"
+    name = "maintenance"
+    label = "保養維修紀錄"
     icon = "fa-solid fa-wrench"
-    column_list = [
+    
+    fields = [
         Maintenance.vehicle,
         Maintenance.user, # 當時使用人
         Maintenance.handler, # 行政處理人
@@ -200,15 +254,17 @@ class MaintenanceAdmin(ModelView, model=Maintenance):
         Maintenance.amount, 
         Maintenance.is_reconciled,
     ]
-    column_formatters = {
-        Maintenance.category: format_maintenance_category,
+    
+    list_formatters = {
+        "category": format_maintenance_category,
     }
-    column_details_formatters = {
-        Maintenance.category: format_maintenance_category,
+    detail_formatters = {
+        "category": format_maintenance_category,
     }
-    column_searchable_list = [Maintenance.vendor, Maintenance.notes, Maintenance.handler_notes]
-    # column_filters = ["category", "performed_on", "vehicle", "user", "handler"]
-    form_columns = [
+    
+    searchable_fields = [Maintenance.vendor, Maintenance.notes, Maintenance.handler_notes]
+    
+    fields_for_form = [
         Maintenance.vehicle,
         Maintenance.user,
         Maintenance.handler,
@@ -225,10 +281,11 @@ class MaintenanceAdmin(ModelView, model=Maintenance):
     ]
 
 class InspectionAdmin(ModelView, model=Inspection):
-    name = "檢驗"
-    name_plural = "檢驗紀錄"
+    name = "inspection"
+    label = "檢驗紀錄"
     icon = "fa-solid fa-clipboard-check"
-    column_list = [
+    
+    fields = [
         Inspection.vehicle, 
         Inspection.handler,
         Inspection.kind, 
@@ -239,14 +296,15 @@ class InspectionAdmin(ModelView, model=Inspection):
         Inspection.amount,
         Inspection.is_reconciled,
     ]
-    column_formatters = {
-        Inspection.kind: format_inspection_kind,
+    
+    list_formatters = {
+        "kind": format_inspection_kind,
     }
-    column_details_formatters = {
-        Inspection.kind: format_inspection_kind,
+    detail_formatters = {
+        "kind": format_inspection_kind,
     }
-    # column_filters = ["kind", "notification_date", "deadline_date", "inspected_on", "vehicle"]
-    form_columns = [
+    
+    fields_for_form = [
         Inspection.vehicle,
         Inspection.user,
         Inspection.handler,
@@ -265,10 +323,11 @@ class InspectionAdmin(ModelView, model=Inspection):
     ]
 
 class FeeAdmin(ModelView, model=Fee):
-    name = "費用"
-    name_plural = "費用請款"
+    name = "fee"
+    label = "費用請款"
     icon = "fa-solid fa-dollar-sign"
-    column_list = [
+    
+    fields = [
         Fee.user,
         Fee.vehicle, 
         Fee.fee_type, 
@@ -277,14 +336,15 @@ class FeeAdmin(ModelView, model=Fee):
         Fee.is_paid,
         Fee.invoice_number,
     ]
-    column_formatters = {
-        Fee.fee_type: format_fee_type,
+    
+    list_formatters = {
+        "fee_type": format_fee_type,
     }
-    column_details_formatters = {
-        Fee.fee_type: format_fee_type,
+    detail_formatters = {
+        "fee_type": format_fee_type,
     }
-    # column_filters = ["fee_type", "request_date", "is_paid", "vehicle", "user"]
-    form_columns = [
+    
+    fields_for_form = [
         Fee.user,
         Fee.vehicle,
         Fee.fee_type,
@@ -299,12 +359,19 @@ class FeeAdmin(ModelView, model=Fee):
     ]
 
 class DisposalAdmin(ModelView, model=Disposal):
-    name = "報廢"
-    name_plural = "報廢紀錄"
+    name = "disposal"
+    label = "報廢紀錄"
     icon = "fa-solid fa-trash"
-    column_list = [Disposal.vehicle, Disposal.user, Disposal.notification_date, Disposal.disposed_on, Disposal.final_mileage]
-    # column_filters = ["disposed_on", "vehicle", "user"]
-    form_columns = [
+    
+    fields = [
+        Disposal.vehicle, 
+        Disposal.user, 
+        Disposal.notification_date, 
+        Disposal.disposed_on, 
+        Disposal.final_mileage
+    ]
+    
+    fields_for_form = [
         Disposal.vehicle,
         Disposal.user,
         Disposal.notification_date,
@@ -314,19 +381,24 @@ class DisposalAdmin(ModelView, model=Disposal):
     ]
 
 class AttachmentAdmin(ModelView, model=Attachment):
-    name = "附件"
-    name_plural = "所有附件"
+    name = "attachment"
+    label = "所有附件"
     icon = "fa-solid fa-paperclip"
+    
     can_create = False
     can_edit = False
-    column_list = [
+    
+    # 列表頁 (原 column_list)
+    fields = [
         Attachment.entity_type, 
         Attachment.entity_id, 
         Attachment.file_name,
         Attachment.file_path,
         Attachment.uploaded_at
     ]
-    column_details_list = [
+    
+    # 詳情頁 (原 column_details_list)
+    fields_for_detail = [
         Attachment.id,
         Attachment.entity_type,
         Attachment.entity_id,
@@ -335,12 +407,15 @@ class AttachmentAdmin(ModelView, model=Attachment):
         Attachment.description,
         Attachment.uploaded_at,
     ]
-    column_formatters = {
-        Attachment.entity_type: format_attachment_entity,
-        Attachment.file_path: format_attachment_link,
+    
+    # 列表頁格式化
+    list_formatters = {
+        "entity_type": format_attachment_entity,
+        "file_path": format_attachment_link,
     }
-    column_details_formatters = {
-        Attachment.entity_type: format_attachment_entity,
-        Attachment.file_path: format_attachment_link,
+    
+    # 詳情頁格式化
+    detail_formatters = {
+        "entity_type": format_attachment_entity,
+        "file_path": format_attachment_link,
     }
-    # column_filters = ["entity_type"]

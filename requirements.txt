@@ -1,9 +1,12 @@
+# requirements.txt
 fastapi
 uvicorn[standard]
 sqlalchemy
 psycopg2-binary
-sqladmin
+starlette-admin
+babel
 python-multipart
 pydantic-settings
 jinja2
 python-dotenv
+pandas

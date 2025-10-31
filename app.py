@@ -1,20 +1,34 @@
 # app.py
 import os
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request # (!!!) 匯入 Request
 from fastapi.staticfiles import StaticFiles
-from sqladmin import Admin
+from starlette_admin.contrib.sqla import Admin 
+from starlette.middleware import Middleware
+from starlette_admin.i18n import I18nMiddleware
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, Attachment, AttachmentEntity
+# (!!!) 匯入修改後的 admin_views
 from admin_views import (
     EmployeeAdmin, VehicleAdmin, VehicleAssetLogAdmin, 
     MaintenanceAdmin, InspectionAdmin, FeeAdmin, DisposalAdmin, AttachmentAdmin
 )
 from config import settings, UPLOAD_PATH
-import uuid # (!!!) 確保 uuid 被匯入
+import uuid
 
-app = FastAPI(title="公務車管理系統")
+app = FastAPI(
+    title="公務車管理系統",
+    # (!!!) 加入 middleware (用於 i18n)
+    middleware=[
+        Middleware(
+            I18nMiddleware,
+            default_locale="zh_TW", # 設定預設語系為繁體中文
+            language_cookie_name="lang",
+        )
+    ],
+)
 
 
 # --- DB 連線與建表 ---
@@ -23,8 +37,19 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base.metadata.create_all(engine)
 
 
-# --- SQLAdmin 後台 ---
-admin = Admin(app=app, engine=engine, title="公務車管理後台")
+# --- SQLAdmin 後台 (!!! 修改為 starlette-admin !!!) ---
+# (!!!) 舊的 admin = Admin(app=app, engine=engine, title="公務車管理後台")
+
+# (!!!) 新的
+admin = Admin(
+    engine,
+    title="公務車管理後台",
+    base_url="/admin", # 設定後台路徑
+    # 可以在這裡加入簡易認證
+    # auth_provider=... 
+)
+
+# (!!!) add_view 的方式相同
 admin.add_view(EmployeeAdmin)
 admin.add_view(VehicleAdmin)
 admin.add_view(VehicleAssetLogAdmin)
@@ -34,13 +59,17 @@ admin.add_view(FeeAdmin)
 admin.add_view(DisposalAdmin)
 admin.add_view(AttachmentAdmin)
 
+# (!!!) 掛載 admin
+admin.mount_to(app)
 
 # --- 靜態檔案服務（提供已上傳附件下載） ---
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_PATH)), name="uploads")
 
 # --- 通用附件上傳 API (加入中文說明) ---
+# (!!!) 為了讓 session 能在 API 中使用，增加 Request 依賴
 @app.post("/api/attachments/upload")
 async def upload_attachment(
+    request: Request, # (!!!) 取得 Request
     entity_type: AttachmentEntity = Form(..., description="關聯的實體類型 (例如: vehicle)"),
     entity_id: str = Form(..., description="關聯紀錄的ID (UUID)"),
     file: UploadFile = File(..., description="要上傳的檔案"),
@@ -62,7 +91,7 @@ async def upload_attachment(
     except ValueError:
         raise HTTPException(status_code=400, detail="entity_id 必須是 UUID 格式")
 
-
+    # (!!!) starlette-admin 建議這樣取得 session
     with SessionLocal() as session:
         att = Attachment(
         entity_type=entity_type,
