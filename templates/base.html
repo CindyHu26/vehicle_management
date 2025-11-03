@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公務車管理系統</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gray-100">
+
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold text-gray-800">公務車管理系統</h1>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8 flex space-x-6">
+        
+        <nav class="w-1/4">
+            <div class="bg-white shadow-md rounded-lg p-4">
+                <h2 class="text-lg font-semibold mb-4">選單</h2>
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" 
+                           class="block px-4 py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+                           hx-get="/vehicles-list"
+                           hx-target="#main-content"
+                           hx-swap="innerHTML"
+                        >
+                          車輛管理
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" 
+                           class="block px-4 py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+                           hx-get="/employees-list"
+                           hx-target="#main-content"
+                           hx-swap="innerHTML"
+                        >
+                          員工管理
+                        </a>
+                    </li>
+                    </ul>
+            </div>
+        </nav>
+
+        <main class="w-3/4">
+            <div 
+                id="main-content" 
+                hx-get="/vehicles-list"
+                hx-trigger="load" 
+                hx-swap="innerHTML"
+            >
+                <p>正在載入...</p>
+            </div>
+        </main>
+    
+    </div> <div id="modal-container"></div>
+
+</body>
+</html>

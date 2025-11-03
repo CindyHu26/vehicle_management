@@ -1,6 +1,6 @@
 # models.py
 from datetime import datetime
-from uuid import uuid4  # (!!!) 匯入 uuid4 (!!!)
+from uuid import uuid4
 from sqlalchemy import (
 Column, String, Integer, Date, DateTime, Numeric, Text,
 ForeignKey, Enum, Boolean
@@ -11,6 +11,16 @@ import enum
 
 
 Base = declarative_base()
+
+# (!!!) 1. 為了讓 Vehicle.__str__ 能運作，將翻譯字典搬移到此 (!!!)
+# (!!!) (這不會影響 admin_views.py，那裡會保留自己的版本) (!!!)
+_VEHICLE_TYPE_MAP_FOR_MODEL = {
+    "car": "小客車",
+    "motorcycle": "機車",
+    "van": "廂型車",
+    "truck": "貨車",
+    "ev_scooter": "電動機車",
+}
 
 # --- 核心模型 (員工) ---
 class Employee(Base):
@@ -24,7 +34,8 @@ class Employee(Base):
     has_motorcycle_license = Column(Boolean, default=False, info={"label": "有機車駕照"})
 
     def __str__(self) -> str:
-        return self.name or f"員工ID: {self.id}"
+        # (!!!) 2. 確保 __str__ 永遠回傳 name (!!!)
+        return self.name or f"員工ID: {str(self.id)[:6]}"
     
 # --- 核心模型 (車輛) ---
 class VehicleType(str, enum.Enum):
@@ -62,7 +73,10 @@ class Vehicle(Base):
     asset_logs = relationship("VehicleAssetLog", back_populates="vehicle", cascade="all, delete-orphan")
 
     def __str__(self) -> str:
-        return self.plate_no or f"車輛ID: {self.id}"
+        key = str(self.vehicle_type).split(".")[-1]
+        vt = _VEHICLE_TYPE_MAP_FOR_MODEL.get(key, key)
+        parts = [self.plate_no, vt, self.model or None]
+        return " / ".join(filter(None, parts))
 
 Employee.vehicles = relationship("Vehicle", order_by=Vehicle.id, back_populates="user")
 
@@ -231,7 +245,7 @@ class Disposal(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "原使用人"})
     user = relationship("Employee", back_populates="disposal_records")
     
-    # (v6) 新增欄位
+    # (v6) 新增欄V欄位
     notification_date = Column(Date, nullable=True, info={"label": "告知報廢日期"})
     disposed_on = Column(Date, nullable=False, info={"label": "報廢日期"})
     final_mileage = Column(Integer, nullable=True, info={"label": "最終公里數"})

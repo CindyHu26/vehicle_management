@@ -1,124 +1,161 @@
 # app.py
 import os
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request 
-from fastapi.staticfiles import StaticFiles
-from starlette_admin.contrib.sqla import Admin 
+from uuid import UUID 
+from typing import Optional 
 
-# (!!!) 1. 匯入 I18nConfig (根據你的文件)
-from starlette_admin.i18n import I18nConfig
-
-from starlette_babel import LocaleMiddleware
-# (!!!) 2. 匯入 Middleware 和 SessionMiddleware (根據你的文件)
-from starlette.middleware import Middleware
-from starlette.middleware.sessions import SessionMiddleware
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from models import Base, Attachment, AttachmentEntity
-from models import (
-    Base, Attachment, AttachmentEntity, Employee, Vehicle, 
-    VehicleAssetLog, Maintenance, Inspection, Fee, Disposal
+from fastapi import (
+    FastAPI, Request, Depends, Form, HTTPException, Response
 )
-from admin_views import (
-    EmployeeAdmin, VehicleAdmin, VehicleAssetLogAdmin, 
-    MaintenanceAdmin, InspectionAdmin, FeeAdmin, DisposalAdmin, AttachmentAdmin
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates 
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker, Session, joinedload 
+
+from models import (
+    Base, Vehicle, Employee, 
+    VehicleType, VehicleStatus
 )
 from config import settings, UPLOAD_PATH
-import uuid
 
-# (!!!) 3. 加入 SessionMiddleware
-middleware = [
-    Middleware(SessionMiddleware, secret_key=settings.ADMIN_SECRET or "change_me_secret"),
-    # (!!!) 修正: 移除 default_locale 參數 (!!!)
-    # 讓 I18nConfig (在 Admin 中) 去處理預設語言
-    Middleware(LocaleMiddleware) 
-]
+# 翻譯字典
+VEHICLE_TYPE_MAP = {
+    "car": "小客車", "motorcycle": "機車", "van": "廂型車",
+    "truck": "貨車", "ev_scooter": "電動機車",
+}
+VEHICLE_STATUS_MAP = {
+    "active": "啟用中", "maintenance": "維修中", "retired": "已報廢",
+}
 
-app = FastAPI(
-    title="公務車管理系統",
-    middleware=middleware  # (!!!) 4. 啟用 Middleware
-)
+app = FastAPI(title="公務車管理系統")
 
-
-# --- DB 連線與建表 ---
+# --- DB 連線與 Session ---
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base.metadata.create_all(engine)
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# --- SQLAdmin 後台 (!!! 修改為 starlette-admin !!!) ---
-admin = Admin(
-    engine,
-    title="公務車管理後台",
-    base_url="/admin", 
-    
-    # (!!!) 5. 套用你找到的 i18n_config 設定！
-    i18n_config=I18nConfig(
-        default_locale="zh_Hant"
-    ),
-)
-
-admin.add_view(EmployeeAdmin(model=Employee))
-admin.add_view(VehicleAdmin(model=Vehicle))
-admin.add_view(VehicleAssetLogAdmin(model=VehicleAssetLog))
-admin.add_view(MaintenanceAdmin(model=Maintenance))
-admin.add_view(InspectionAdmin(model=Inspection))
-admin.add_view(FeeAdmin(model=Fee))
-admin.add_view(DisposalAdmin(model=Disposal))
-admin.add_view(AttachmentAdmin(model=Attachment))
-
-admin.mount_to(app)
-
-# --- 靜態檔案服務（提供已上傳附件下載） ---
+# --- 模板與靜態檔案 ---
+templates = Jinja2Templates(directory="templates")
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_PATH)), name="uploads")
 
-# --- 通用附件上傳 API (加入中文說明) ---
-# (!!!) 為了讓 session 能在 API 中使用，增加 Request 依賴
-@app.post("/api/attachments/upload")
-async def upload_attachment(
-    request: Request, # (!!!) 取得 Request
-    entity_type: AttachmentEntity = Form(..., description="關聯的實體類型 (例如: vehicle)"),
-    entity_id: str = Form(..., description="關聯紀錄的ID (UUID)"),
-    file: UploadFile = File(..., description="要上傳的檔案"),
-    description: str | None = Form(None, description="檔案說明 (可選)"),
-):
-    # 儲存檔案
-    suffix = Path(file.filename).suffix
-    safe_name = f"{entity_type.value}_{entity_id}_{uuid.uuid4().hex}{suffix}"
-    save_path = UPLOAD_PATH / safe_name
+templates.env.globals['vehicle_type_map'] = VEHICLE_TYPE_MAP
+templates.env.globals['vehicle_status_map'] = VEHICLE_STATUS_MAP
+
+
+# --- 頁面路由 ---
+@app.get("/")
+async def get_main_page(request: Request):
+    return templates.TemplateResponse(
+        name="base.html",
+        context={"request": request}
+    )
+
+# --- 列表 API (車輛) ---
+@app.get("/vehicles-list")
+async def get_vehicles_list(request: Request, db: Session = Depends(get_db)):
+    stmt = (
+        select(Vehicle)
+        .options(joinedload(Vehicle.user)) 
+        .order_by(Vehicle.plate_no)
+    )
+    vehicles = db.scalars(stmt).all()
     
-    try:
-        with open(save_path, "wb") as f:
-            f.write(await file.read())
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"無法儲存檔案: {e}")
-
-    try:
-        ent_uuid = uuid.UUID(entity_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="entity_id G 格式")
-
-    # (!!!) starlette-admin 建議這樣取得 session
-    with SessionLocal() as session:
-        att = Attachment(
-        entity_type=entity_type,
-        entity_id=ent_uuid,
-        file_name=file.filename,
-        file_path=str(save_path.name),
-        description=description,
-        )
-        session.add(att)
-        session.commit()
-        session.refresh(att)
-        return {
-        "id": str(att.id),
-        "file_url": f"/uploads/{save_path.name}",
-        "file_name": att.file_name,
+    return templates.TemplateResponse(
+        name="fragments/vehicle_list.html",
+        context={
+            "request": request,
+            "vehicles": vehicles
         }
+    )
+
+# --- 列表 API (員工) ---
+@app.get("/employees-list")
+async def get_employees_list(request: Request, db: Session = Depends(get_db)):
+    stmt = select(Employee).order_by(Employee.name)
+    employees = db.scalars(stmt).all()
+    
+    return templates.TemplateResponse(
+        name="fragments/employee_list.html",
+        context={
+            "request": request,
+            "employees": employees
+        }
+    )
 
 
-# 健康檢查
-@app.get("/health")
-def health():
-    return {"ok": True}
+# --- (!!!) 取得「新增/編輯」表單 API (車輛) (修正參數順序) (!!!) ---
+@app.get("/vehicle/new")
+@app.get("/vehicle/{vehicle_id}/edit")
+async def get_vehicle_form(
+    request: Request, 
+    vehicle_id: Optional[UUID] = None, # (!!!) 修正：路徑參數往前 (!!!)
+    db: Session = Depends(get_db)
+):
+    vehicle = None
+    if vehicle_id:
+        vehicle = db.get(Vehicle, vehicle_id)
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    
+    return templates.TemplateResponse(
+        name="fragments/vehicle_form.html",
+        context={
+            "request": request,
+            "vehicle": vehicle, 
+            "all_employees": all_employees,
+            "vehicle_types": list(VehicleType), 
+            "vehicle_statuses": list(VehicleStatus), 
+        }
+    )
+
+# --- (!!!) 提交「新增/編輯」表單 API (車輛) (修正參數順序) (!!!) ---
+@app.post("/vehicle/new")
+@app.post("/vehicle/{vehicle_id}/edit")
+async def create_or_update_vehicle(
+    request: Request,
+    vehicle_id: Optional[UUID] = None, # (!!!) 修正：路徑參數往前 (!!!)
+    db: Session = Depends(get_db),
+    # (!!!) Form 參數會自動從 body 讀取，順序在後面沒關係 (!!!)
+    plate_no: str = Form(...),
+    user_id: Optional[str] = Form(None), 
+    vehicle_type: VehicleType = Form(...),
+    status: VehicleStatus = Form(...),
+    company: Optional[str] = Form(None),
+    make: Optional[str] = Form(None),
+    model: Optional[str] = Form(None)
+):
+    user_uuid = None
+    if user_id:
+        try:
+            user_uuid = UUID(user_id) 
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid User ID format")
+
+    if vehicle_id:
+        vehicle = db.get(Vehicle, vehicle_id)
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+    else:
+        existing = db.scalar(select(Vehicle).where(Vehicle.plate_no == plate_no))
+        if existing:
+            raise HTTPException(status_code=400, detail="車牌號碼已存在")
+        vehicle = Vehicle()
+        db.add(vehicle)
+
+    # 更新欄位
+    vehicle.plate_no = plate_no
+    vehicle.user_id = user_uuid
+    vehicle.vehicle_type = vehicle_type
+    vehicle.status = status
+    vehicle.company = company
+    vehicle.make = make
+    vehicle.model = model
