@@ -44,7 +44,7 @@ class Vehicle(Base):
     __tablename__ = "vehicles"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, info={"label": "ID"})
     plate_no = Column(String, unique=True, nullable=False, info={"label": "車牌號碼"})
-    company = Column(String(100), nullable=True, info={"label": "所屬公司"}) 
+    company = Column(String(100), nullable=True, info={"label": "所屬公司/人員"}) 
     vehicle_type = Column(Enum(VehicleType), nullable=False, default=VehicleType.car, info={"label": "車輛類型"})
     make = Column(String, nullable=True, info={"label": "品牌"})
     model = Column(String, nullable=True, info={"label": "型號"})
