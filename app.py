@@ -15,7 +15,10 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, Attachment, AttachmentEntity
-# (!!!) 匯入修改後的 admin_views
+from models import (
+    Base, Attachment, AttachmentEntity, Employee, Vehicle, 
+    VehicleAssetLog, Maintenance, Inspection, Fee, Disposal
+)
 from admin_views import (
     EmployeeAdmin, VehicleAdmin, VehicleAssetLogAdmin, 
     MaintenanceAdmin, InspectionAdmin, FeeAdmin, DisposalAdmin, AttachmentAdmin
@@ -49,19 +52,18 @@ admin = Admin(
     
     # (!!!) 5. 套用你找到的 i18n_config 設定！
     i18n_config=I18nConfig(
-        default_locale="zh_Hant",  # (!!!) 使用 "zh_Hant" (繁體)
-        supported_locales=["en", "zh_Hant", "zh_Hans"] 
+        default_locale="zh_Hant"
     ),
 )
 
-admin.add_view(EmployeeAdmin)
-admin.add_view(VehicleAdmin)
-admin.add_view(VehicleAssetLogAdmin)
-admin.add_view(MaintenanceAdmin)
-admin.add_view(InspectionAdmin)
-admin.add_view(FeeAdmin)
-admin.add_view(DisposalAdmin)
-admin.add_view(AttachmentAdmin)
+admin.add_view(EmployeeAdmin(model=Employee))
+admin.add_view(VehicleAdmin(model=Vehicle))
+admin.add_view(VehicleAssetLogAdmin(model=VehicleAssetLog))
+admin.add_view(MaintenanceAdmin(model=Maintenance))
+admin.add_view(InspectionAdmin(model=Inspection))
+admin.add_view(FeeAdmin(model=Fee))
+admin.add_view(DisposalAdmin(model=Disposal))
+admin.add_view(AttachmentAdmin(model=Attachment))
 
 admin.mount_to(app)
 

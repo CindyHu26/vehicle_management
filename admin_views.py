@@ -4,6 +4,7 @@ from typing import Any
 from markupsafe import Markup
 
 from starlette_admin.contrib.sqla import ModelView
+from starlette.requests import Request
 
 from models import (
     Vehicle, Maintenance, Inspection, Fee, Disposal, Attachment, Employee, 
@@ -126,15 +127,14 @@ def format_asset_status(value: Any) -> str:
         return Markup(f'<span class="badge bg-secondary">{ASSET_STATUS_MAP.get(val_str)}</span>')
     return ASSET_STATUS_MAP.get(val_str, val_str)
 
+def format_uuid_as_str(value: Any) -> str:
+    """(!!!) 新增：將 UUID 物件轉換為字串 (!!!)"""
+    if value is None:
+        return ""
+    return str(value)
+
 # --- Admin Views (!!! 轉換為 starlette-admin !!!) ---
-
-# (!!!) 
-# (!!!) 我們將所有 Class 還原回「新語法」
-# (!!!) (即 model=... 寫在 class(...) 括號內)
-# (!!!) 這才是 starlette-admin 0.15.1 需要的語法
-# (!!!)
-
-class EmployeeAdmin(ModelView, model=Employee): # (!!!) 還原 (1/8)
+class EmployeeAdmin(ModelView): 
     name = "employee" # 英文唯一值
     label = "員工管理" # 中文顯示
     icon = "fa-solid fa-users"
@@ -160,7 +160,7 @@ class EmployeeAdmin(ModelView, model=Employee): # (!!!) 還原 (1/8)
     ]
     
 
-class VehicleAdmin(ModelView, model=Vehicle): # (!!!) 還原 (2/8)
+class VehicleAdmin(ModelView):
     name = "vehicle"
     label = "車輛管理"
     icon = "fa-solid fa-car"
@@ -208,7 +208,7 @@ class VehicleAdmin(ModelView, model=Vehicle): # (!!!) 還原 (2/8)
         Vehicle.maintenance_interval,
     ]
 
-class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog): # (!!!) 還原 (3/8)
+class VehicleAssetLogAdmin(ModelView):
     name = "vehicle_asset_log"
     label = "車輛資產日誌"
     icon = "fa-solid fa-key"
@@ -243,7 +243,7 @@ class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog): # (!!!) 還原 (3/
         VehicleAssetLog.notes,
     ]
 
-class MaintenanceAdmin(ModelView, model=Maintenance): # (!!!) 還原 (4/8)
+class MaintenanceAdmin(ModelView):
     name = "maintenance"
     label = "保養維修紀錄"
     icon = "fa-solid fa-wrench"
@@ -285,7 +285,7 @@ class MaintenanceAdmin(ModelView, model=Maintenance): # (!!!) 還原 (4/8)
         Maintenance.handler_notes,
     ]
 
-class InspectionAdmin(ModelView, model=Inspection): # (!!!) 還原 (5/8)
+class InspectionAdmin(ModelView):
     name = "inspection"
     label = "檢驗紀錄"
     icon = "fa-solid fa-clipboard-check"
@@ -327,7 +327,7 @@ class InspectionAdmin(ModelView, model=Inspection): # (!!!) 還原 (5/8)
         Inspection.handler_notes,
     ]
 
-class FeeAdmin(ModelView, model=Fee): # (!!!) 還原 (6/8)
+class FeeAdmin(ModelView):
     name = "fee"
     label = "費用請款"
     icon = "fa-solid fa-dollar-sign"
@@ -346,7 +346,7 @@ class FeeAdmin(ModelView, model=Fee): # (!!!) 還原 (6/8)
         "fee_type": format_fee_type,
     }
     detail_formatters = {
-        "fee_type": format_fee_type, # (!!!) 修正打字錯誤
+        "fee_type": format_fee_type, 
     }
     
     fields_for_form = [
@@ -363,7 +363,7 @@ class FeeAdmin(ModelView, model=Fee): # (!!!) 還原 (6/8)
         Fee.notes,
     ]
 
-class DisposalAdmin(ModelView, model=Disposal): # (!!!) 還原 (7/8)
+class DisposalAdmin(ModelView):
     name = "disposal"
     label = "報廢紀錄"
     icon = "fa-solid fa-trash"
@@ -385,13 +385,16 @@ class DisposalAdmin(ModelView, model=Disposal): # (!!!) 還原 (7/8)
         Disposal.reason,
     ]
 
-class AttachmentAdmin(ModelView, model=Attachment): # (!!!) 還原 (8/8)
+class AttachmentAdmin(ModelView):
     name = "attachment"
     label = "所有附件"
     icon = "fa-solid fa-paperclip"
     
-    can_create = False
-    can_edit = False
+    def can_create(self, request: Request) -> bool:
+        return False
+        
+    def can_edit(self, request: Request) -> bool:
+        return False
     
     # 列表頁 (原 column_list)
     fields = [
@@ -417,10 +420,12 @@ class AttachmentAdmin(ModelView, model=Attachment): # (!!!) 還原 (8/8)
     list_formatters = {
         "entity_type": format_attachment_entity,
         "file_path": format_attachment_link,
+        "entity_id": format_uuid_as_str,
     }
     
     # 詳情頁格式化
     detail_formatters = {
         "entity_type": format_attachment_entity,
         "file_path": format_attachment_link,
+        "entity_id": format_uuid_as_str,
     }
