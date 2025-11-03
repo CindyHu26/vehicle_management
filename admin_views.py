@@ -5,14 +5,18 @@ from markupsafe import Markup
 
 from starlette_admin.contrib.sqla import ModelView
 from starlette.requests import Request
+from starlette_admin import fields as F  # (!!!) 匯入 fields 模組 (!!!)
 
+# (!!!) 匯入所有 Model 和 Enum (!!!)
 from models import (
     Vehicle, Maintenance, Inspection, Fee, Disposal, Attachment, Employee, 
-    VehicleAssetLog, AssetType, AssetStatus,
-    VehicleType, VehicleStatus, MaintenanceCategory, InspectionKind, FeeType, AttachmentEntity
+    VehicleAssetLog, 
+    AssetType, AssetStatus, VehicleType, VehicleStatus, 
+    MaintenanceCategory, InspectionKind, FeeType, AttachmentEntity
 )
 
-# --- (v13) Enum 中文翻譯字典 (這部分保持不變) ---
+# --- (v13) Enum 中文翻譯字典 (保持不變) ---
+# (這些 formatter 仍將被 list_formatters / detail_formatters 使用)
 VEHICLE_TYPE_MAP = {
     "car": "小客車",
     "motorcycle": "機車",
@@ -23,7 +27,7 @@ VEHICLE_TYPE_MAP = {
 VEHICLE_STATUS_MAP = {
     "active": "啟用中",
     "maintenance": "維修中",
-    "retired": "已報廢",
+    "retired": "已報Pedro",
 }
 MAINTENANCE_CATEGORY_MAP = {
     "maintenance": "定期保養",
@@ -71,10 +75,9 @@ ASSET_STATUS_MAP = {
 }
 
 
-# --- 格式化函式 (!!! 修正：處理 Enum 物件 !!!) ---
+# --- 格式化函式 (保持不變) ---
 
 def _get_enum_value(value: Any) -> str:
-    """輔助函式：安全地取得 Enum 的 value，如果不是 Enum 則轉為 str"""
     if isinstance(value, enum.Enum):
         return str(value.value)
     return str(value)
@@ -128,266 +131,320 @@ def format_asset_status(value: Any) -> str:
     return ASSET_STATUS_MAP.get(val_str, val_str)
 
 def format_uuid_as_str(value: Any) -> str:
-    """(!!!) 新增：將 UUID 物件轉換為字串 (!!!)"""
     if value is None:
         return ""
     return str(value)
 
-# --- Admin Views (!!! 轉換為 starlette-admin !!!) ---
+# --- Admin Views (!!! 最終修正：F.*Field + formatters 字典 !!!) ---
+
 class EmployeeAdmin(ModelView): 
-    name = "employee" # 英文唯一值
-    label = "員工管理" # 中文顯示
+    name = "employee" 
+    label = "員工管理"
+    identity = "員工" 
     icon = "fa-solid fa-users"
     
-    # 列表頁欄位 (原 column_list)
-    # 標籤會自動抓 models.py 裡的 info={"label": "..."}
     fields = [
-        Employee.name, 
-        Employee.phone, 
-        Employee.has_car_license, 
-        Employee.has_motorcycle_license
+        F.StringField("name", label="姓名"),
+        F.StringField("phone", label="電話"),
+        F.BooleanField("has_car_license", label="有汽車駕照"),
+        F.BooleanField("has_motorcycle_license", label="有機車駕照"),
     ]
     
-    # 搜尋欄位 (原 column_searchable_list)
-    searchable_fields = [Employee.name]
+    # (!!!) 1. 新增 detail_formatters 字典 (!!!)
+    detail_formatters = {
+        "id": format_uuid_as_str,
+    }
     
-    # 表單欄位 (原 form_columns)
+    searchable_fields = ["name", "phone"]
+    
     fields_for_form = [
-        Employee.name, 
-        Employee.phone, 
-        Employee.has_car_license, 
-        Employee.has_motorcycle_license
+        F.StringField("name", label="姓名"),
+        F.StringField("phone", label="電話"),
+        F.BooleanField("has_car_license", label="有汽車駕照"),
+        F.BooleanField("has_motorcycle_license", label="有機車駕照"),
     ]
     
+    fields_for_detail = [
+        F.StringField("id", label="ID"), # (!!!) 2. 移除 formatter (!!!)
+        F.StringField("name", label="姓名"),
+        F.StringField("phone", label="電話"),
+        F.BooleanField("has_car_license", label="有汽車駕照"), # (修正打字錯誤)
+        F.BooleanField("has_motorcycle_license", label="有機車駕照"), # (修正打字錯誤)
+        F.RelationField("vehicles", label="主要車輛"),
+    ]
 
 class VehicleAdmin(ModelView):
     name = "vehicle"
     label = "車輛管理"
+    identity = "車輛"
     icon = "fa-solid fa-car"
     
-    # 列表頁欄位 (原 column_list)
+    # (!!!) 1. 移除 'formatter=' (!!!)
     fields = [
-        Vehicle.plate_no,
-        Vehicle.company, 
-        Vehicle.vehicle_type,
-        Vehicle.user, 
-        Vehicle.model, 
-        Vehicle.manufacture_date,
-        Vehicle.current_mileage,
-        Vehicle.maintenance_interval,
-        Vehicle.status
+        F.StringField("plate_no", label="車牌號碼"),
+        F.StringField("company", label="所屬公司"),
+        F.StringField("vehicle_type", label="車輛類型"),
+        F.RelationField("user", label="主要使用人"),
+        F.StringField("model", label="型號"),
+        F.DateField("manufacture_date", label="出廠年月"),
+        F.IntegerField("current_mileage", label="目前最新公里數"),
+        F.IntegerField("maintenance_interval", label="保養基準(km)"),
+        F.StringField("status", label="狀態"),
     ]
     
-    # 列表頁格式化 (原 column_formatters)
+    # (!!!) 2. 重新加回 formatters 字典 (!!!)
     list_formatters = {
         "vehicle_type": format_vehicle_type,
         "status": format_vehicle_status,
     }
     
-    # 詳情頁格式化 (原 column_details_formatters)
     detail_formatters = {
         "vehicle_type": format_vehicle_type,
         "status": format_vehicle_status,
+        "id": format_uuid_as_str,
     }
-    
-    # 搜尋欄位 (原 column_searchable_list)
-    searchable_fields = [Vehicle.plate_no, Vehicle.make, Vehicle.model, Vehicle.company]
-    
-    # 表單欄位 (原 form_columns)
+
+    searchable_fields = ["plate_no", "make", "model", "company"]
+
+    # (!!!) 3. 移除 'formatter=' (!!!)
     fields_for_form = [
-        Vehicle.plate_no,
-        Vehicle.company, 
-        Vehicle.vehicle_type,
-        Vehicle.status,
-        Vehicle.user, 
-        Vehicle.make,
-        Vehicle.model,
-        Vehicle.manufacture_date, 
-        Vehicle.displacement_cc,
-        Vehicle.current_mileage,
-        Vehicle.maintenance_interval,
+        F.StringField("plate_no", label="車牌號碼"),
+        F.StringField("company", label="所屬公司"),
+        F.EnumField("vehicle_type", enum=VehicleType, label="車輛類型"),
+        F.EnumField("status", enum=VehicleStatus, label="狀態"),
+        F.RelationField("user", label="主要使用人"),
+        F.StringField("make", label="品牌"),
+        F.StringField("model", label="型號"),
+        F.DateField("manufacture_date", label="出廠年月"),
+        F.IntegerField("displacement_cc", label="排氣量(cc)"),
+        F.IntegerField("current_mileage", label="目前最新公里數"),
+        F.IntegerField("maintenance_interval", label="保養基準(km)"),
+    ]
+    
+    fields_for_detail = fields_for_form + [
+        F.StringField("id", label="ID") # ID 在 detail_formatters 中處理
     ]
 
 class VehicleAssetLogAdmin(ModelView):
     name = "vehicle_asset_log"
     label = "車輛資產日誌"
+    identity = "車輛資產"
     icon = "fa-solid fa-key"
     
     fields = [
-        VehicleAssetLog.vehicle,
-        VehicleAssetLog.log_date,
-        VehicleAssetLog.asset_type,
-        VehicleAssetLog.description,
-        VehicleAssetLog.status,
-        VehicleAssetLog.user, # 保管人
+        F.RelationField("vehicle", label="關聯車輛"),
+        F.DateField("log_date", label="紀錄日期"),
+        F.StringField("asset_type", label="財產類型"),
+        F.StringField("description", label="財產描述"),
+        F.StringField("status", label="狀態"),
+        F.RelationField("user", label="保管人"),
     ]
     
     list_formatters = {
         "asset_type": format_asset_type,
         "status": format_asset_status,
     }
+    
     detail_formatters = {
         "asset_type": format_asset_type,
         "status": format_asset_status,
+        "id": format_uuid_as_str,
     }
     
-    searchable_fields = [VehicleAssetLog.description]
+    searchable_fields = ["description", "notes"]
     
     fields_for_form = [
-        VehicleAssetLog.vehicle,
-        VehicleAssetLog.log_date,
-        VehicleAssetLog.asset_type,
-        VehicleAssetLog.description,
-        VehicleAssetLog.status,
-        VehicleAssetLog.user,
-        VehicleAssetLog.notes,
+        F.RelationField("vehicle", label="關聯車輛"),
+        F.DateField("log_date", label="紀錄日期"),
+        F.EnumField("asset_type", enum=AssetType, label="財產類型"),
+        F.StringField("description", label="財產描述"),
+        F.EnumField("status", enum=AssetStatus, label="狀態"),
+        F.RelationField("user", label="保管人"),
+        F.TextAreaField("notes", label="備註"),
+    ]
+    
+    fields_for_detail = fields_for_form + [
+        F.StringField("id", label="ID")
     ]
 
 class MaintenanceAdmin(ModelView):
     name = "maintenance"
     label = "保養維修紀錄"
+    identity = "保養維修"
     icon = "fa-solid fa-wrench"
     
     fields = [
-        Maintenance.vehicle,
-        Maintenance.user, # 當時使用人
-        Maintenance.handler, # 行政處理人
-        Maintenance.category, 
-        Maintenance.performed_on, 
-        Maintenance.return_date,
-        Maintenance.odometer_km,
-        Maintenance.amount, 
-        Maintenance.is_reconciled,
+        F.RelationField("vehicle", label="車輛"),
+        F.RelationField("user", label="當時使用人"),
+        F.RelationField("handler", label="行政處理人"),
+        F.StringField("category", label="類別"),
+        F.DateField("performed_on", label="執行日期"),
+        F.DateField("return_date", label="牽車(回)日期"),
+        F.IntegerField("odometer_km", label="當時實際里程"),
+        F.FloatField("amount", label="金額"),
+        F.BooleanField("is_reconciled", label="已對帳"),
     ]
     
     list_formatters = {
         "category": format_maintenance_category,
     }
+    
     detail_formatters = {
         "category": format_maintenance_category,
+        "id": format_uuid_as_str,
     }
     
-    searchable_fields = [Maintenance.vendor, Maintenance.notes, Maintenance.handler_notes]
+    searchable_fields = ["vendor", "notes", "handler_notes"]
     
     fields_for_form = [
-        Maintenance.vehicle,
-        Maintenance.user,
-        Maintenance.handler,
-        Maintenance.category,
-        Maintenance.vendor,
-        Maintenance.performed_on,
-        Maintenance.return_date,
-        Maintenance.service_target_km,
-        Maintenance.odometer_km,
-        Maintenance.amount,
-        Maintenance.is_reconciled,
-        Maintenance.notes,
-        Maintenance.handler_notes,
+        F.RelationField("vehicle", label="車輛"),
+        F.RelationField("user", label="當時使用人(可選)"),
+        F.RelationField("handler", label="行政處理人"),
+        F.EnumField("category", enum=MaintenanceCategory, label="類別"),
+        F.StringField("vendor", label="廠商"),
+        F.DateField("performed_on", label="執行日期"),
+        F.DateField("return_date", label="牽車(回)日期"),
+        F.IntegerField("service_target_km", label="表定保養里程"),
+        F.IntegerField("odometer_km", label="當時實際里程"),
+        F.FloatField("amount", label="金額(填入會自動產生費用單)"),
+        F.BooleanField("is_reconciled", label="已對帳(勾選會自動標記費用單)"),
+        F.TextAreaField("notes", label="維修細節(附註)"),
+        F.TextAreaField("handler_notes", label="聯絡事宜(備註-2)"),
+    ]
+    
+    fields_for_detail = fields_for_form + [
+        F.StringField("id", label="ID")
     ]
 
 class InspectionAdmin(ModelView):
     name = "inspection"
     label = "檢驗紀錄"
+    identity = "檢驗"
     icon = "fa-solid fa-clipboard-check"
     
     fields = [
-        Inspection.vehicle, 
-        Inspection.handler,
-        Inspection.kind, 
-        Inspection.notification_date,
-        Inspection.deadline_date,
-        Inspection.inspected_on, 
-        Inspection.result,
-        Inspection.amount,
-        Inspection.is_reconciled,
+        F.RelationField("vehicle", label="車輛"),
+        F.RelationField("handler", label="行政處理人"),
+        F.StringField("kind", label="檢驗類型"),
+        F.DateField("notification_date", label="接收通知日期"),
+        F.DateField("deadline_date", label="最晚日期(期限)"),
+        F.DateField("inspected_on", label="實際驗車日期"),
+        F.StringField("result", label="結果"),
+        F.FloatField("amount", label="金額"),
+        F.BooleanField("is_reconciled", label="已對帳"),
     ]
     
     list_formatters = {
         "kind": format_inspection_kind,
     }
+    
     detail_formatters = {
         "kind": format_inspection_kind,
+        "id": format_uuid_as_str,
     }
     
     fields_for_form = [
-        Inspection.vehicle,
-        Inspection.user,
-        Inspection.handler,
-        Inspection.kind,
-        Inspection.result,
-        Inspection.notification_date,
-        Inspection.notification_source,
-        Inspection.deadline_date,
-        Inspection.inspected_on,
-        Inspection.return_date,
-        Inspection.next_due_on,
-        Inspection.amount,
-        Inspection.is_reconciled,
-        Inspection.notes,
-        Inspection.handler_notes,
+        F.RelationField("vehicle", label="車輛"),
+        F.RelationField("user", label="當時使用人(可選)"),
+        F.RelationField("handler", label="行政處理人"),
+        F.EnumField("kind", enum=InspectionKind, label="檢驗類型"),
+        F.StringField("result", label="結果"),
+        F.DateField("notification_date", label="接收通知日期"),
+        F.StringField("notification_source", label="通知方式(告知者)"),
+        F.DateField("deadline_date", label="最晚日期(期限)"),
+        F.DateField("inspected_on", label="實際驗車日期"),
+        F.DateField("return_date", label="牽車(回)日期"),
+        F.DateField("next_due_on", label="下次應驗日期"),
+        F.FloatField("amount", label="金額(填入會自動產生費用單)"),
+        F.BooleanField("is_reconciled", label="已對帳(勾選會自動標記費用單)"),
+        F.TextAreaField("notes", label="檢驗細節(附註)"),
+        F.TextAreaField("handler_notes", label="聯絡事宜(備註)"),
+    ]
+    
+    fields_for_detail = fields_for_form + [
+        F.StringField("id", label="ID")
     ]
 
 class FeeAdmin(ModelView):
     name = "fee"
     label = "費用請款"
+    identity = "費用"
     icon = "fa-solid fa-dollar-sign"
     
     fields = [
-        Fee.user,
-        Fee.vehicle, 
-        Fee.fee_type, 
-        Fee.amount, 
-        Fee.request_date,
-        Fee.is_paid,
-        Fee.invoice_number,
+        F.RelationField("user", label="請款人"),
+        F.RelationField("vehicle", label="車輛(可選)"),
+        F.StringField("fee_type", label="費用類型"),
+        F.FloatField("amount", label="金額"),
+        F.DateField("request_date", label="請款日期"),
+        F.BooleanField("is_paid", label="已給(已付款)"),
+        F.StringField("invoice_number", label="發票號碼"),
     ]
     
     list_formatters = {
         "fee_type": format_fee_type,
     }
+    
     detail_formatters = {
-        "fee_type": format_fee_type, 
+        "fee_type": format_fee_type,
+        "id": format_uuid_as_str,
     }
     
     fields_for_form = [
-        Fee.user,
-        Fee.vehicle,
-        Fee.fee_type,
-        Fee.receive_date,
-        Fee.request_date,
-        Fee.invoice_number,
-        Fee.amount,
-        Fee.is_paid,
-        Fee.period_start,
-        Fee.period_end,
-        Fee.notes,
+        F.RelationField("user", label="請款人"),
+        F.RelationField("vehicle", label="車輛(可選)"),
+        F.EnumField("fee_type", enum=FeeType, label="費用類型"),
+        F.DateField("receive_date", label="收到單據日期"),
+        F.DateField("request_date", label="請款日期"),
+        F.StringField("invoice_number", label="發票號碼"),
+        F.FloatField("amount", label="金額"),
+        F.BooleanField("is_paid", label="已給(已付款)"),
+        F.DateField("period_start", label="費用區間(起)"),
+        F.DateField("period_end", label="費用區間(迄)"),
+        F.TextAreaField("notes", label="備註/項目"),
+    ]
+    
+    fields_for_detail = fields_for_form + [
+        F.StringField("id", label="ID")
     ]
 
 class DisposalAdmin(ModelView):
     name = "disposal"
     label = "報廢紀錄"
+    identity = "報廢"
     icon = "fa-solid fa-trash"
     
     fields = [
-        Disposal.vehicle, 
-        Disposal.user, 
-        Disposal.notification_date, 
-        Disposal.disposed_on, 
-        Disposal.final_mileage
+        F.RelationField("vehicle", label="車輛"),
+        F.RelationField("user", label="原使用人"),
+        F.DateField("notification_date", label="告知報廢日期"),
+        F.DateField("disposed_on", label="報廢日期"),
+        F.IntegerField("final_mileage", label="最終公里數"),
     ]
     
+    list_formatters = {}
+    
+    detail_formatters = {
+        "id": format_uuid_as_str,
+    }
+    
     fields_for_form = [
-        Disposal.vehicle,
-        Disposal.user,
-        Disposal.notification_date,
-        Disposal.disposed_on,
-        Disposal.final_mileage,
-        Disposal.reason,
+        F.RelationField("vehicle", label="車輛"),
+        F.RelationField("user", label="原使用人"),
+        F.DateField("notification_date", label="告知報廢日期"),
+        F.DateField("disposed_on", label="報廢日期"),
+        F.IntegerField("final_mileage", label="最終公里數"),
+        F.TextAreaField("reason", label="報廢原因"),
+    ]
+    
+    fields_for_detail = fields_for_form + [
+        F.StringField("id", label="ID")
     ]
 
 class AttachmentAdmin(ModelView):
     name = "attachment"
     label = "所有附件"
+    identity = "附件"
     icon = "fa-solid fa-paperclip"
     
     def can_create(self, request: Request) -> bool:
@@ -396,36 +453,34 @@ class AttachmentAdmin(ModelView):
     def can_edit(self, request: Request) -> bool:
         return False
     
-    # 列表頁 (原 column_list)
     fields = [
-        Attachment.entity_type, 
-        Attachment.entity_id, 
-        Attachment.file_name,
-        Attachment.file_path,
-        Attachment.uploaded_at
+        F.StringField("entity_type", label="關聯類型"),
+        F.StringField("entity_id", label="關聯ID"), 
+        F.StringField("file_name", label="原始檔名"),
+        F.StringField("file_path", label="檔案路徑"),
+        F.DateTimeField("uploaded_at", label="上傳時間"),
     ]
     
-    # 詳情頁 (原 column_details_list)
-    fields_for_detail = [
-        Attachment.id,
-        Attachment.entity_type,
-        Attachment.entity_id,
-        Attachment.file_name,
-        Attachment.file_path,
-        Attachment.description,
-        Attachment.uploaded_at,
-    ]
-    
-    # 列表頁格式化
+    # (!!!) 重新加回 formatters 字典 (!!!)
     list_formatters = {
         "entity_type": format_attachment_entity,
         "file_path": format_attachment_link,
         "entity_id": format_uuid_as_str,
     }
     
-    # 詳情頁格式化
     detail_formatters = {
         "entity_type": format_attachment_entity,
         "file_path": format_attachment_link,
         "entity_id": format_uuid_as_str,
+        "id": format_uuid_as_str,
     }
+    
+    fields_for_detail = [
+        F.StringField("id", label="ID"),
+        F.StringField("entity_type", label="關聯類型"),
+        F.StringField("entity_id", label="關聯ID"),
+        F.StringField("file_name", label="原始檔名"),
+        F.StringField("file_path", label="檔案路徑"),
+        F.TextAreaField("description", label="檔案說明"),
+        F.DateTimeField("uploaded_at", label="上傳時間"),
+    ]

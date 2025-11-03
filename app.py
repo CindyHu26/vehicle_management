@@ -8,6 +8,7 @@ from starlette_admin.contrib.sqla import Admin
 # (!!!) 1. 匯入 I18nConfig (根據你的文件)
 from starlette_admin.i18n import I18nConfig
 
+from starlette_babel import LocaleMiddleware
 # (!!!) 2. 匯入 Middleware 和 SessionMiddleware (根據你的文件)
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -27,9 +28,11 @@ from config import settings, UPLOAD_PATH
 import uuid
 
 # (!!!) 3. 加入 SessionMiddleware
-# (你的 config.py 裡有 ADMIN_SECRET，我們可以用它，或者用 'change_me' 臨時替代)
 middleware = [
-    Middleware(SessionMiddleware, secret_key=settings.ADMIN_SECRET or "change_me_secret")
+    Middleware(SessionMiddleware, secret_key=settings.ADMIN_SECRET or "change_me_secret"),
+    # (!!!) 修正: 移除 default_locale 參數 (!!!)
+    # 讓 I18nConfig (在 Admin 中) 去處理預設語言
+    Middleware(LocaleMiddleware) 
 ]
 
 app = FastAPI(
