@@ -173,7 +173,7 @@ class EmployeeAdmin(ModelView):
     ]
 
 class VehicleAdmin(ModelView):
-    identity = "vehicles"
+    identity = "vehicle"
     name = "車輛"
     label = "車輛管理"
     icon = "fa-solid fa-car"
@@ -324,7 +324,7 @@ class MaintenanceAdmin(ModelView):
     ]
 
 class InspectionAdmin(ModelView):
-    identity = "inspections"
+    identity = "inspection"
     name = "檢驗"
     label = "檢驗紀錄"
     icon = "fa-solid fa-clipboard-check"
@@ -373,7 +373,7 @@ class InspectionAdmin(ModelView):
     ]
 
 class FeeAdmin(ModelView):
-    identity = "fees"
+    identity = "fee"
     name = "費用"
     label = "費用請款"
     icon = "fa-solid fa-dollar-sign"
@@ -416,7 +416,7 @@ class FeeAdmin(ModelView):
     ]
 
 class DisposalAdmin(ModelView):
-    identity = "disposals"
+    identity = "disposal"
     name = "報廢"
     label = "報廢紀錄"
     icon = "fa-solid fa-trash"
@@ -449,7 +449,7 @@ class DisposalAdmin(ModelView):
     ]
 
 class AttachmentAdmin(ModelView):
-    identity = "attachments"
+    identity = "attachment"
     name = "附件"
     label = "所有附件"
     icon = "fa-solid fa-paperclip"
