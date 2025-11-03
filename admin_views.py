@@ -138,9 +138,9 @@ def format_uuid_as_str(value: Any) -> str:
 # --- Admin Views (!!! 最終修正：F.*Field + formatters 字典 !!!) ---
 
 class EmployeeAdmin(ModelView): 
-    name = "employee" 
+    identity = "employee"
+    name = "員工"
     label = "員工管理"
-    identity = "員工" 
     icon = "fa-solid fa-users"
     
     fields = [
@@ -150,12 +150,11 @@ class EmployeeAdmin(ModelView):
         F.BooleanField("has_motorcycle_license", label="有機車駕照"),
     ]
     
-    # (!!!) 1. 新增 detail_formatters 字典 (!!!)
     detail_formatters = {
         "id": format_uuid_as_str,
     }
     
-    searchable_fields = ["name", "phone"]
+    searchable_fields = ["name", "phone", "has_car_license", "has_motorcycle_license"]
     
     fields_for_form = [
         F.StringField("name", label="姓名"),
@@ -163,23 +162,22 @@ class EmployeeAdmin(ModelView):
         F.BooleanField("has_car_license", label="有汽車駕照"),
         F.BooleanField("has_motorcycle_license", label="有機車駕照"),
     ]
-    
+
     fields_for_detail = [
-        F.StringField("id", label="ID"), # (!!!) 2. 移除 formatter (!!!)
+        F.StringField("id", label="ID"),
         F.StringField("name", label="姓名"),
         F.StringField("phone", label="電話"),
-        F.BooleanField("has_car_license", label="有汽車駕照"), # (修正打字錯誤)
-        F.BooleanField("has_motorcycle_license", label="有機車駕照"), # (修正打字錯誤)
+        F.BooleanField("has_car_license", label="有汽車駕照"),
+        F.BooleanField("has_motorcycle_license", label="有機車駕照"),
         F.RelationField("vehicles", label="主要車輛"),
     ]
 
 class VehicleAdmin(ModelView):
-    name = "vehicle"
+    identity = "vehicles"
+    name = "車輛"
     label = "車輛管理"
-    identity = "車輛"
     icon = "fa-solid fa-car"
     
-    # (!!!) 1. 移除 'formatter=' (!!!)
     fields = [
         F.StringField("plate_no", label="車牌號碼"),
         F.StringField("company", label="所屬公司"),
@@ -192,7 +190,6 @@ class VehicleAdmin(ModelView):
         F.StringField("status", label="狀態"),
     ]
     
-    # (!!!) 2. 重新加回 formatters 字典 (!!!)
     list_formatters = {
         "vehicle_type": format_vehicle_type,
         "status": format_vehicle_status,
@@ -206,7 +203,6 @@ class VehicleAdmin(ModelView):
 
     searchable_fields = ["plate_no", "make", "model", "company"]
 
-    # (!!!) 3. 移除 'formatter=' (!!!)
     fields_for_form = [
         F.StringField("plate_no", label="車牌號碼"),
         F.StringField("company", label="所屬公司"),
@@ -220,15 +216,26 @@ class VehicleAdmin(ModelView):
         F.IntegerField("current_mileage", label="目前最新公里數"),
         F.IntegerField("maintenance_interval", label="保養基準(km)"),
     ]
-    
+
+    fields_for_search = [
+        F.StringField("plate_no", label="車牌號碼"),
+        F.StringField("company", label="所屬公司"),
+        F.EnumField("vehicle_type", enum=VehicleType, label="車輛類型"),
+        F.EnumField("status", enum=VehicleStatus, label="狀態"),
+        F.RelationField("user", label="主要使用人"), # <-- 這個會被顯示為下拉選單
+        F.StringField("make", label="品牌"),
+        F.StringField("model", label="型號"),
+        F.DateField("manufacture_date", label="出廠年月"),
+    ]
+
     fields_for_detail = fields_for_form + [
         F.StringField("id", label="ID") # ID 在 detail_formatters 中處理
     ]
 
 class VehicleAssetLogAdmin(ModelView):
-    name = "vehicle_asset_log"
+    identity = "vehicle_asset_logs"
+    name = "車輛資產"
     label = "車輛資產日誌"
-    identity = "車輛資產"
     icon = "fa-solid fa-key"
     
     fields = [
@@ -268,9 +275,9 @@ class VehicleAssetLogAdmin(ModelView):
     ]
 
 class MaintenanceAdmin(ModelView):
-    name = "maintenance"
+    identity = "maintenance"
+    name = "保養維修"
     label = "保養維修紀錄"
-    identity = "保養維修"
     icon = "fa-solid fa-wrench"
     
     fields = [
@@ -317,9 +324,9 @@ class MaintenanceAdmin(ModelView):
     ]
 
 class InspectionAdmin(ModelView):
-    name = "inspection"
+    identity = "inspections"
+    name = "檢驗"
     label = "檢驗紀錄"
-    identity = "檢驗"
     icon = "fa-solid fa-clipboard-check"
     
     fields = [
@@ -366,9 +373,9 @@ class InspectionAdmin(ModelView):
     ]
 
 class FeeAdmin(ModelView):
-    name = "fee"
+    identity = "fees"
+    name = "費用"
     label = "費用請款"
-    identity = "費用"
     icon = "fa-solid fa-dollar-sign"
     
     fields = [
@@ -409,9 +416,9 @@ class FeeAdmin(ModelView):
     ]
 
 class DisposalAdmin(ModelView):
-    name = "disposal"
+    identity = "disposals"
+    name = "報廢"
     label = "報廢紀錄"
-    identity = "報廢"
     icon = "fa-solid fa-trash"
     
     fields = [
@@ -442,9 +449,9 @@ class DisposalAdmin(ModelView):
     ]
 
 class AttachmentAdmin(ModelView):
-    name = "attachment"
+    identity = "attachments"
+    name = "附件"
     label = "所有附件"
-    identity = "附件"
     icon = "fa-solid fa-paperclip"
     
     def can_create(self, request: Request) -> bool:
