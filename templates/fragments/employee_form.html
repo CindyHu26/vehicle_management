@@ -1,0 +1,74 @@
+<div 
+  class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50"
+  hx-on:click="if (event.target === this) this.remove()"
+>
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg">
+    
+    <h2 class="text-2xl font-semibold mb-4">
+      {% if employee %}
+        編輯員工 ({{ employee.name }})
+      {% else %}
+        新增員工
+      {% endif %}
+    </h2>
+
+    <form 
+      {% if employee %}
+        hx-post="/employee/{{ employee.id }}/edit"
+      {% else %}
+        hx-post="/employee/new"
+      {% endif %}
+      hx-on="htmx:afterOnLoad: this.closest('.fixed').remove()"
+    >
+      <div class="space-y-4">
+        
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700">姓名</label>
+          <input type="text" name="name" id="name" value="{{ employee.name if employee else '' }}" 
+                 required 
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="phone" class="block text-sm font-medium text-gray-700">電話</label>
+          <input type="text" name="phone" id="phone" value="{{ employee.phone if employee else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center">
+            <input id="has_car_license" name="has_car_license" type="checkbox" value="True" 
+                   {% if employee and employee.has_car_license %}checked{% endif %}
+                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <label for="has_car_license" class="ml-2 block text-sm text-gray-900">有汽車駕照</label>
+          </div>
+          <div class="flex items-center">
+            <input id="has_motorcycle_license" name="has_motorcycle_license" type="checkbox" value="True"
+                   {% if employee and employee.has_motorcycle_license %}checked{% endif %}
+                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <label for="has_motorcycle_license" class="ml-2 block text-sm text-gray-900">有機車駕照</label>
+          </div>
+        </div>
+        
+        <input type="hidden" name="has_car_license" value="False">
+        <input type="hidden" name="has_motorcycle_license" value="False">
+
+      </div>
+
+      <div class="mt-6 flex justify-end space-x-3">
+        <button type="button" 
+                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+                hx-on:click="this.closest('.fixed').remove()"
+        >
+          取消
+        </button>
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+        >
+          儲存
+        </button>
+      </div>
+    </form>
+    
+  </div>
+</div>

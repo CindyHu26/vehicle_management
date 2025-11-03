@@ -28,6 +28,7 @@
                            hx-get="/vehicles-list"
                            hx-target="#main-content"
                            hx-swap="innerHTML"
+                           hx-trigger="load" 
                         >
                           車輛管理
                         </a>
@@ -47,17 +48,14 @@
         </nav>
 
         <main class="w-3/4">
-            <div 
-                id="main-content" 
-                hx-get="/vehicles-list"
-                hx-trigger="load" 
-                hx-swap="innerHTML"
-            >
+            <div id="main-content">
                 <p>正在載入...</p>
             </div>
         </main>
     
-    </div> <div id="modal-container"></div>
+    </div> 
+    
+    <div id="modal-container"></div>
 
 </body>
 </html>
