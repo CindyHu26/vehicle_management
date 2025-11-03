@@ -18,15 +18,14 @@ class Employee(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, info={"label": "ID"})
     name = Column(String(100), unique=True, nullable=False, info={"label": "姓名"})
     
-    # (!!! 修正 null -> nullable !!!)
     phone = Column(String(50), nullable=True, info={"label": "電話"})
     
     has_car_license = Column(Boolean, default=False, info={"label": "有汽車駕照"})
     has_motorcycle_license = Column(Boolean, default=False, info={"label": "有機車駕照"})
 
     def __str__(self) -> str:
-        return self.name
-
+        return self.name or f"員工ID: {self.id}"
+    
 # --- 核心模型 (車輛) ---
 class VehicleType(str, enum.Enum):
     car = "car"
@@ -63,7 +62,7 @@ class Vehicle(Base):
     asset_logs = relationship("VehicleAssetLog", back_populates="vehicle", cascade="all, delete-orphan")
 
     def __str__(self) -> str:
-        return self.plate_no
+        return self.plate_no or f"車輛ID: {self.id}"
 
 Employee.vehicles = relationship("Vehicle", order_by=Vehicle.id, back_populates="user")
 

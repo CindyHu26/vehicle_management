@@ -6,9 +6,8 @@ from markupsafe import Markup
 from starlette_admin.contrib.sqla import ModelView
 from starlette.requests import Request
 from starlette_admin import fields as F
-from sqlalchemy.orm import selectinload
+# (!!!) 移除了所有錯誤的 import (selectinload, joinedload) (!!!)
 
-# (!!!) 匯入所有 Model 和 Enum (!!!)
 from models import (
     Vehicle, Maintenance, Inspection, Fee, Disposal, Attachment, Employee, 
     VehicleAssetLog, 
@@ -27,7 +26,7 @@ VEHICLE_TYPE_MAP = {
 VEHICLE_STATUS_MAP = {
     "active": "啟用中",
     "maintenance": "維修中",
-    "retired": "已報廢",
+    "retired": "已報廢", # (!!!) 修正 "Pedro" 錯字 (!!!)
 }
 MAINTENANCE_CATEGORY_MAP = {
     "maintenance": "定期保養",
@@ -74,13 +73,35 @@ ASSET_STATUS_MAP = {
     "disposed": "報廢",
 }
 
+# (!!!) 為 EnumField 的 choices 建立中文選項 (!!!)
+VEHICLE_TYPE_CHOICES = [(v.value, VEHICLE_TYPE_MAP.get(v.value, v.value)) for v in VehicleType]
+VEHICLE_STATUS_CHOICES = [(v.value, VEHICLE_STATUS_MAP.get(v.value, v.value)) for v in VehicleStatus]
+ASSET_TYPE_CHOICES = [(v.value, ASSET_TYPE_MAP.get(v.value, v.value)) for v in AssetType]
+ASSET_STATUS_CHOICES = [(v.value, ASSET_STATUS_MAP.get(v.value, v.value)) for v in AssetStatus]
+MAINTENANCE_CATEGORY_CHOICES = [(v.value, MAINTENANCE_CATEGORY_MAP.get(v.value, v.value)) for v in MaintenanceCategory]
+INSPECTION_KIND_CHOICES = [(v.value, INSPECTION_KIND_MAP.get(v.value, v.value)) for v in InspectionKind]
+FEE_TYPE_CHOICES = [(v.value, FEE_TYPE_MAP.get(v.value, v.value)) for v in FeeType]
+ATTACHMENT_ENTITY_CHOICES = [(v.value, ATTACHMENT_ENTITY_MAP.get(v.value, v.value)) for v in AttachmentEntity]
+
 
 # --- 格式化函式 (保持不變) ---
-# ( ... 所有的 format_... 函式 ... )
 def _get_enum_value(value: Any) -> str:
     if isinstance(value, enum.Enum):
         return str(value.value)
     return str(value)
+
+# (!!!) 1. 新增關聯欄位的 Formatter (!!!)
+def format_user_name(user_obj: Employee) -> str:
+    """ 將 Employee 物件轉為姓名 (處理 None) """
+    if user_obj is None:
+        return "-null-"
+    return str(user_obj) # (這會呼叫 models.py 中的 __str__)
+
+def format_vehicle_plate(vehicle_obj: Vehicle) -> str:
+    """ 將 Vehicle 物件轉為車牌 (處理 None) """
+    if vehicle_obj is None:
+        return "-null-"
+    return str(vehicle_obj) # (這會呼叫 models.py 中的 __str__)
 
 def format_vehicle_type(value: Any) -> str:
     val_str = _get_enum_value(value)
@@ -136,6 +157,7 @@ def format_uuid_as_str(value: Any) -> str:
     return str(value)
 
 # --- Admin Views ---
+
 class EmployeeAdmin(ModelView): 
     identity = "employee"
     name = "員工"
@@ -179,34 +201,37 @@ class VehicleAdmin(ModelView):
     
     fields = [
         F.StringField("plate_no", label="車牌號碼"),
-        F.StringField("company", label="所屬公司/人員"),
-        F.StringField("vehicle_type", label="車輛類型"),
+        F.StringField("company", label="所屬公司"),
+        F.EnumField("vehicle_type", enum=VehicleType, label="車輛類型"), # (!!!) 2. 列表頁改回 EnumField (!!!)
         F.HasOne("user", label="主要使用人", identity="employee"),
         F.StringField("model", label="型號"),
         F.DateField("manufacture_date", label="出廠年月"),
         F.IntegerField("current_mileage", label="目前最新公里數"),
         F.IntegerField("maintenance_interval", label="保養基準(km)"),
-        F.StringField("status", label="狀態"),
+        F.EnumField("status", enum=VehicleStatus, label="狀態"), # (!!!) 2. 列表頁改回 EnumField (!!!)
     ]
     
+    # (!!!) 3. 重新加回 list_formatters (!!!)
     list_formatters = {
         "vehicle_type": format_vehicle_type,
         "status": format_vehicle_status,
+        "user": format_user_name, # (!!!) 3. 加入關聯欄位 formatter (!!!)
     }
     
     detail_formatters = {
         "vehicle_type": format_vehicle_type,
         "status": format_vehicle_status,
         "id": format_uuid_as_str,
+        "user": format_user_name, # (!!!) 3. 詳情頁也加入 (!!!)
     }
 
     searchable_fields = ["plate_no", "make", "model", "company"]
 
     fields_for_form = [
         F.StringField("plate_no", label="車牌號碼"),
-        F.StringField("company", label="所屬公司/人員"),
-        F.EnumField("vehicle_type", enum=VehicleType, label="車輛類型"),
-        F.EnumField("status", enum=VehicleStatus, label="狀態"),
+        F.StringField("company", label="所屬公司"),
+        F.EnumField("vehicle_type", enum=VehicleType, label="車輛類型", choices=VEHICLE_TYPE_CHOICES),
+        F.EnumField("status", enum=VehicleStatus, label="狀態", choices=VEHICLE_STATUS_CHOICES),
         F.HasOne("user", label="主要使用人", identity="employee"),
         F.StringField("make", label="品牌"),
         F.StringField("model", label="型號"),
@@ -218,10 +243,10 @@ class VehicleAdmin(ModelView):
 
     fields_for_search = [
         F.StringField("plate_no", label="車牌號碼"),
-        F.StringField("company", label="所屬公司/人員"),
-        F.EnumField("vehicle_type", enum=VehicleType, label="車輛類型"),
-        F.EnumField("status", enum=VehicleStatus, label="狀態"),
-        F.HasOne("user", label="主要使用人", identity="employee"),
+        F.StringField("company", label="所屬公司"),
+        F.EnumField("vehicle_type", enum=VehicleType, label="車輛類型", choices=VEHICLE_TYPE_CHOICES),
+        F.EnumField("status", enum=VehicleStatus, label="狀態", choices=VEHICLE_STATUS_CHOICES),
+        F.HasOne("user", label="主要使用人", identity="employee"), 
         F.StringField("make", label="品牌"),
         F.StringField("model", label="型號"),
         F.DateField("manufacture_date", label="出廠年月"),
@@ -230,31 +255,35 @@ class VehicleAdmin(ModelView):
     fields_for_detail = fields_for_form + [
         F.StringField("id", label="ID") 
     ]
-    
+
 class VehicleAssetLogAdmin(ModelView):
     identity = "vehicle_asset_log"
     name = "車輛資產"
     label = "車輛資產日誌"
     icon = "fa-solid fa-key"
-
+    
     fields = [
         F.HasOne("vehicle", label="關聯車輛", identity="vehicle"),
         F.DateField("log_date", label="紀錄日期"),
-        F.StringField("asset_type", label="財產類型"),
+        F.EnumField("asset_type", enum=AssetType, label="財產類型"), # (!!!) 2. 改回 EnumField (!!!)
         F.StringField("description", label="財產描述"),
-        F.StringField("status", label="狀態"),
+        F.EnumField("status", enum=AssetStatus, label="狀態"), # (!!!) 2. 改回 EnumField (!!!)
         F.HasOne("user", label="保管人", identity="employee"),
     ]
     
     list_formatters = {
         "asset_type": format_asset_type,
         "status": format_asset_status,
+        "user": format_user_name, # (!!!) 3. 加入 (!!!)
+        "vehicle": format_vehicle_plate, # (!!!) 3. 加入 (!!!)
     }
     
     detail_formatters = {
         "asset_type": format_asset_type,
         "status": format_asset_status,
         "id": format_uuid_as_str,
+        "user": format_user_name,
+        "vehicle": format_vehicle_plate,
     }
     
     searchable_fields = ["description", "notes"]
@@ -262,9 +291,9 @@ class VehicleAssetLogAdmin(ModelView):
     fields_for_form = [
         F.HasOne("vehicle", label="關聯車輛", identity="vehicle"),
         F.DateField("log_date", label="紀錄日期"),
-        F.EnumField("asset_type", enum=AssetType, label="財產類型"),
+        F.EnumField("asset_type", enum=AssetType, label="財產類型", choices=ASSET_TYPE_CHOICES),
         F.StringField("description", label="財產描述"),
-        F.EnumField("status", enum=AssetStatus, label="狀態"),
+        F.EnumField("status", enum=AssetStatus, label="狀態", choices=ASSET_STATUS_CHOICES),
         F.HasOne("user", label="保管人", identity="employee"),
         F.TextAreaField("notes", label="備註"),
     ]
@@ -283,7 +312,7 @@ class MaintenanceAdmin(ModelView):
         F.HasOne("vehicle", label="車輛", identity="vehicle"),
         F.HasOne("user", label="當時使用人", identity="employee"),
         F.HasOne("handler", label="行政處理人", identity="employee"),
-        F.StringField("category", label="類別"),
+        F.EnumField("category", enum=MaintenanceCategory, label="類別"), # (!!!) 2. 改回 EnumField (!!!)
         F.DateField("performed_on", label="執行日期"),
         F.DateField("return_date", label="牽車(回)日期"),
         F.IntegerField("odometer_km", label="當時實際里程"),
@@ -293,11 +322,17 @@ class MaintenanceAdmin(ModelView):
     
     list_formatters = {
         "category": format_maintenance_category,
+        "vehicle": format_vehicle_plate, # (!!!) 3. 加入 (!!!)
+        "user": format_user_name, # (!!!) 3. 加入 (!!!)
+        "handler": format_user_name, # (!!!) 3. 加入 (!!!)
     }
     
     detail_formatters = {
         "category": format_maintenance_category,
         "id": format_uuid_as_str,
+        "vehicle": format_vehicle_plate,
+        "user": format_user_name,
+        "handler": format_user_name,
     }
     
     searchable_fields = ["vendor", "notes", "handler_notes"]
@@ -306,7 +341,7 @@ class MaintenanceAdmin(ModelView):
         F.HasOne("vehicle", label="車輛", identity="vehicle"),
         F.HasOne("user", label="當時使用人(可選)", identity="employee"),
         F.HasOne("handler", label="行政處理人", identity="employee"),
-        F.EnumField("category", enum=MaintenanceCategory, label="類別"),
+        F.EnumField("category", enum=MaintenanceCategory, label="類別", choices=MAINTENANCE_CATEGORY_CHOICES),
         F.StringField("vendor", label="廠商"),
         F.DateField("performed_on", label="執行日期"),
         F.DateField("return_date", label="牽車(回)日期"),
@@ -331,7 +366,7 @@ class InspectionAdmin(ModelView):
     fields = [
         F.HasOne("vehicle", label="車輛", identity="vehicle"),
         F.HasOne("handler", label="行政處理人", identity="employee"),
-        F.StringField("kind", label="檢驗類型"),
+        F.EnumField("kind", enum=InspectionKind, label="檢驗類型"), # (!!!) 2. 改回 EnumField (!!!)
         F.DateField("notification_date", label="接收通知日期"),
         F.DateField("deadline_date", label="最晚日期(期限)"),
         F.DateField("inspected_on", label="實際驗車日期"),
@@ -342,18 +377,23 @@ class InspectionAdmin(ModelView):
     
     list_formatters = {
         "kind": format_inspection_kind,
+        "vehicle": format_vehicle_plate, # (!!!) 3. 加入 (!!!)
+        "handler": format_user_name, # (!!!) 3. 加入 (!!!)
     }
     
     detail_formatters = {
         "kind": format_inspection_kind,
         "id": format_uuid_as_str,
+        "vehicle": format_vehicle_plate,
+        "user": format_user_name, # (User 也在詳情頁)
+        "handler": format_user_name,
     }
     
     fields_for_form = [
         F.HasOne("vehicle", label="車輛", identity="vehicle"),
         F.HasOne("user", label="當時使用人(可選)", identity="employee"),
         F.HasOne("handler", label="行政處理人", identity="employee"),
-        F.EnumField("kind", enum=InspectionKind, label="檢驗類型"),
+        F.EnumField("kind", enum=InspectionKind, label="檢驗類型", choices=INSPECTION_KIND_CHOICES),
         F.StringField("result", label="結果"),
         F.DateField("notification_date", label="接收通知日期"),
         F.StringField("notification_source", label="通知方式(告知者)"),
@@ -370,7 +410,7 @@ class InspectionAdmin(ModelView):
     fields_for_detail = fields_for_form + [
         F.StringField("id", label="ID")
     ]
-    
+
 class FeeAdmin(ModelView):
     identity = "fee"
     name = "費用"
@@ -380,7 +420,7 @@ class FeeAdmin(ModelView):
     fields = [
         F.HasOne("user", label="請款人", identity="employee"),
         F.HasOne("vehicle", label="車輛(可選)", identity="vehicle"),
-        F.StringField("fee_type", label="費用類型"),
+        F.EnumField("fee_type", enum=FeeType, label="費用類型"), # (!!!) 2. 改回 EnumField (!!!)
         F.FloatField("amount", label="金額"),
         F.DateField("request_date", label="請款日期"),
         F.BooleanField("is_paid", label="已給(已付款)"),
@@ -389,17 +429,21 @@ class FeeAdmin(ModelView):
     
     list_formatters = {
         "fee_type": format_fee_type,
+        "user": format_user_name, # (!!!) 3. 加入 (!!!)
+        "vehicle": format_vehicle_plate, # (!!!) 3. 加入 (!!!)
     }
     
     detail_formatters = {
         "fee_type": format_fee_type,
         "id": format_uuid_as_str,
+        "user": format_user_name,
+        "vehicle": format_vehicle_plate,
     }
     
     fields_for_form = [
         F.HasOne("user", label="請款人", identity="employee"),
         F.HasOne("vehicle", label="車輛(可選)", identity="vehicle"),
-        F.EnumField("fee_type", enum=FeeType, label="費用類型"),
+        F.EnumField("fee_type", enum=FeeType, label="費用類型", choices=FEE_TYPE_CHOICES),
         F.DateField("receive_date", label="收到單據日期"),
         F.DateField("request_date", label="請款日期"),
         F.StringField("invoice_number", label="發票號碼"),
@@ -428,10 +472,15 @@ class DisposalAdmin(ModelView):
         F.IntegerField("final_mileage", label="最終公里數"),
     ]
     
-    list_formatters = {}
+    list_formatters = {
+        "vehicle": format_vehicle_plate, # (!!!) 3. 加入 (!!!)
+        "user": format_user_name, # (!!!) 3. 加入 (!!!)
+    }
     
     detail_formatters = {
         "id": format_uuid_as_str,
+        "vehicle": format_vehicle_plate,
+        "user": format_user_name,
     }
     
     fields_for_form = [
@@ -460,7 +509,7 @@ class AttachmentAdmin(ModelView):
         return False
     
     fields = [
-        F.StringField("entity_type", label="關聯類型"),
+        F.EnumField("entity_type", enum=AttachmentEntity, label="關聯類型"), # (!!!) 2. 改回 EnumField (!!!)
         F.StringField("entity_id", label="關聯ID"), 
         F.StringField("file_name", label="原始檔名"),
         F.StringField("file_path", label="檔案路徑"),
@@ -482,7 +531,7 @@ class AttachmentAdmin(ModelView):
     
     fields_for_detail = [
         F.StringField("id", label="ID"),
-        F.StringField("entity_type", label="關聯類型"),
+        F.EnumField("entity_type", enum=AttachmentEntity, label="關聯類型", choices=ATTACHMENT_ENTITY_CHOICES),
         F.StringField("entity_id", label="關聯ID"),
         F.StringField("file_name", label="原始檔名"),
         F.StringField("file_path", label="檔案路徑"),
