@@ -177,6 +177,8 @@ class VehicleAdmin(ModelView):
     name = "車輛"
     label = "車輛管理"
     icon = "fa-solid fa-car"
+
+    fields_default_join = [Vehicle.user]
     
     fields = [
         F.StringField("plate_no", label="車牌號碼"),
@@ -233,10 +235,12 @@ class VehicleAdmin(ModelView):
     ]
 
 class VehicleAssetLogAdmin(ModelView):
-    identity = "vehicle_asset_logs"
+    identity = "vehicle_asset_log"
     name = "車輛資產"
     label = "車輛資產日誌"
     icon = "fa-solid fa-key"
+
+    fields_default_join = [VehicleAssetLog.vehicle, VehicleAssetLog.user]
     
     fields = [
         F.RelationField("vehicle", label="關聯車輛"),
@@ -280,6 +284,8 @@ class MaintenanceAdmin(ModelView):
     label = "保養維修紀錄"
     icon = "fa-solid fa-wrench"
     
+    fields_default_join = [Maintenance.vehicle, Maintenance.user, Maintenance.handler]
+
     fields = [
         F.RelationField("vehicle", label="車輛"),
         F.RelationField("user", label="當時使用人"),
@@ -328,6 +334,8 @@ class InspectionAdmin(ModelView):
     name = "檢驗"
     label = "檢驗紀錄"
     icon = "fa-solid fa-clipboard-check"
+
+    fields_default_join = [Inspection.vehicle, Inspection.handler]
     
     fields = [
         F.RelationField("vehicle", label="車輛"),
@@ -377,6 +385,8 @@ class FeeAdmin(ModelView):
     name = "費用"
     label = "費用請款"
     icon = "fa-solid fa-dollar-sign"
+
+    fields_default_join = [Fee.user, Fee.vehicle]
     
     fields = [
         F.RelationField("user", label="請款人"),
@@ -420,6 +430,8 @@ class DisposalAdmin(ModelView):
     name = "報廢"
     label = "報廢紀錄"
     icon = "fa-solid fa-trash"
+
+    fields_default_join = [Disposal.vehicle, Disposal.user]
     
     fields = [
         F.RelationField("vehicle", label="車輛"),
@@ -467,8 +479,7 @@ class AttachmentAdmin(ModelView):
         F.StringField("file_path", label="檔案路徑"),
         F.DateTimeField("uploaded_at", label="上傳時間"),
     ]
-    
-    # (!!!) 重新加回 formatters 字典 (!!!)
+
     list_formatters = {
         "entity_type": format_attachment_entity,
         "file_path": format_attachment_link,
