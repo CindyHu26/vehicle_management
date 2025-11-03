@@ -1,9 +1,16 @@
 # app.py
 import os
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request # (!!!) 匯入 Request
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request 
 from fastapi.staticfiles import StaticFiles
 from starlette_admin.contrib.sqla import Admin 
+
+# (!!!) 1. 匯入 I18nConfig (根據你的文件)
+from starlette_admin.i18n import I18nConfig
+
+# (!!!) 2. 匯入 Middleware 和 SessionMiddleware (根據你的文件)
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -16,8 +23,15 @@ from admin_views import (
 from config import settings, UPLOAD_PATH
 import uuid
 
+# (!!!) 3. 加入 SessionMiddleware
+# (你的 config.py 裡有 ADMIN_SECRET，我們可以用它，或者用 'change_me' 臨時替代)
+middleware = [
+    Middleware(SessionMiddleware, secret_key=settings.ADMIN_SECRET or "change_me_secret")
+]
+
 app = FastAPI(
     title="公務車管理系統",
+    middleware=middleware  # (!!!) 4. 啟用 Middleware
 )
 
 
@@ -28,18 +42,18 @@ Base.metadata.create_all(engine)
 
 
 # --- SQLAdmin 後台 (!!! 修改為 starlette-admin !!!) ---
-# (!!!) 舊的 admin = Admin(app=app, engine=engine, title="公務車管理後台")
-
-# (!!!) 新的
 admin = Admin(
     engine,
     title="公務車管理後台",
-    base_url="/admin", # 設定後台路徑
-    # 可以在這裡加入簡易認證
-    # auth_provider=... 
+    base_url="/admin", 
+    
+    # (!!!) 5. 套用你找到的 i18n_config 設定！
+    i18n_config=I18nConfig(
+        default_locale="zh_Hant",  # (!!!) 使用 "zh_Hant" (繁體)
+        supported_locales=["en", "zh_Hant", "zh_Hans"] 
+    ),
 )
 
-# (!!!) add_view 的方式相同
 admin.add_view(EmployeeAdmin)
 admin.add_view(VehicleAdmin)
 admin.add_view(VehicleAssetLogAdmin)
@@ -49,7 +63,6 @@ admin.add_view(FeeAdmin)
 admin.add_view(DisposalAdmin)
 admin.add_view(AttachmentAdmin)
 
-# (!!!) 掛載 admin
 admin.mount_to(app)
 
 # --- 靜態檔案服務（提供已上傳附件下載） ---
@@ -79,7 +92,7 @@ async def upload_attachment(
     try:
         ent_uuid = uuid.UUID(entity_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="entity_id 必須是 UUID 格式")
+        raise HTTPException(status_code=400, detail="entity_id G 格式")
 
     # (!!!) starlette-admin 建議這樣取得 session
     with SessionLocal() as session:

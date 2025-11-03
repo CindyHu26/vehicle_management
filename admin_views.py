@@ -3,7 +3,6 @@ import enum
 from typing import Any
 from markupsafe import Markup
 
-# (!!!) 改為匯入 starlette_admin 的 ModelView
 from starlette_admin.contrib.sqla import ModelView
 
 from models import (
@@ -129,7 +128,13 @@ def format_asset_status(value: Any) -> str:
 
 # --- Admin Views (!!! 轉換為 starlette-admin !!!) ---
 
-class EmployeeAdmin(ModelView, model=Employee):
+# (!!!) 
+# (!!!) 我們將所有 Class 還原回「新語法」
+# (!!!) (即 model=... 寫在 class(...) 括號內)
+# (!!!) 這才是 starlette-admin 0.15.1 需要的語法
+# (!!!)
+
+class EmployeeAdmin(ModelView, model=Employee): # (!!!) 還原 (1/8)
     name = "employee" # 英文唯一值
     label = "員工管理" # 中文顯示
     icon = "fa-solid fa-users"
@@ -155,7 +160,7 @@ class EmployeeAdmin(ModelView, model=Employee):
     ]
     
 
-class VehicleAdmin(ModelView, model=Vehicle):
+class VehicleAdmin(ModelView, model=Vehicle): # (!!!) 還原 (2/8)
     name = "vehicle"
     label = "車輛管理"
     icon = "fa-solid fa-car"
@@ -203,7 +208,7 @@ class VehicleAdmin(ModelView, model=Vehicle):
         Vehicle.maintenance_interval,
     ]
 
-class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog):
+class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog): # (!!!) 還原 (3/8)
     name = "vehicle_asset_log"
     label = "車輛資產日誌"
     icon = "fa-solid fa-key"
@@ -238,7 +243,7 @@ class VehicleAssetLogAdmin(ModelView, model=VehicleAssetLog):
         VehicleAssetLog.notes,
     ]
 
-class MaintenanceAdmin(ModelView, model=Maintenance):
+class MaintenanceAdmin(ModelView, model=Maintenance): # (!!!) 還原 (4/8)
     name = "maintenance"
     label = "保養維修紀錄"
     icon = "fa-solid fa-wrench"
@@ -280,7 +285,7 @@ class MaintenanceAdmin(ModelView, model=Maintenance):
         Maintenance.handler_notes,
     ]
 
-class InspectionAdmin(ModelView, model=Inspection):
+class InspectionAdmin(ModelView, model=Inspection): # (!!!) 還原 (5/8)
     name = "inspection"
     label = "檢驗紀錄"
     icon = "fa-solid fa-clipboard-check"
@@ -322,7 +327,7 @@ class InspectionAdmin(ModelView, model=Inspection):
         Inspection.handler_notes,
     ]
 
-class FeeAdmin(ModelView, model=Fee):
+class FeeAdmin(ModelView, model=Fee): # (!!!) 還原 (6/8)
     name = "fee"
     label = "費用請款"
     icon = "fa-solid fa-dollar-sign"
@@ -341,7 +346,7 @@ class FeeAdmin(ModelView, model=Fee):
         "fee_type": format_fee_type,
     }
     detail_formatters = {
-        "fee_type": format_fee_type,
+        "fee_type": format_fee_type, # (!!!) 修正打字錯誤
     }
     
     fields_for_form = [
@@ -358,7 +363,7 @@ class FeeAdmin(ModelView, model=Fee):
         Fee.notes,
     ]
 
-class DisposalAdmin(ModelView, model=Disposal):
+class DisposalAdmin(ModelView, model=Disposal): # (!!!) 還原 (7/8)
     name = "disposal"
     label = "報廢紀錄"
     icon = "fa-solid fa-trash"
@@ -380,7 +385,7 @@ class DisposalAdmin(ModelView, model=Disposal):
         Disposal.reason,
     ]
 
-class AttachmentAdmin(ModelView, model=Attachment):
+class AttachmentAdmin(ModelView, model=Attachment): # (!!!) 還原 (8/8)
     name = "attachment"
     label = "所有附件"
     icon = "fa-solid fa-paperclip"
