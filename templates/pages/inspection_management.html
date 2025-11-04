@@ -1,0 +1,24 @@
+<div>
+  <div class="mb-4 flex justify-between items-center">
+    <h2 class="text-3xl font-bold text-gray-800">
+      檢驗紀錄 (全列表)
+    </h2>
+    <button 
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
+      hx-get="/inspection/new"
+      hx-target="#modal-container"
+      hx-swap="beforeend"
+    >
+      + 新增檢驗紀錄
+    </button>
+  </div>
+
+  <div 
+    id="inspection-list-container"
+    hx-get="/inspection-list-all"
+    hx-trigger="load, refreshInspectionListAll from:body"
+    hx-swap="innerHTML"
+  >
+    <p class="p-6 text-gray-500">正在載入所有檢驗紀錄...</p>
+  </div>
+</div>

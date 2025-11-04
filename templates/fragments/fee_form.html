@@ -1,0 +1,124 @@
+<div 
+  class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50"
+  hx-on:click="if (event.target === this) this.remove()"
+>
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+    <h2 class="text-2xl font-semibold mb-4">
+      {% if fee %}
+        編輯費用/請款
+      {% else %}
+        新增費用/請款
+      {% endif %}
+    </h2>
+
+    <form 
+      {% if fee %}
+        hx-post="/fee/{{ fee.id }}/edit"
+      {% else %}
+        hx-post="/fee/new"
+      {% endif %}
+
+      hx-on="htmx:afterOnLoad: this.closest('.fixed').remove()"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div class="col-span-1">
+            <label for="vehicle_id" class="block text-sm font-medium text-gray-700">關聯車輛 (可選)</label>
+            <select name="vehicle_id" id="vehicle_id"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- 無 (私車/雜項) --</option>
+              {% for v in all_vehicles %}
+                <option value="{{ v.id }}" {% if selected_vehicle_id and selected_vehicle_id == v.id %}selected{% endif %}>
+                  {{ v.plate_no }} ({{ v.model or 'N/A' }})
+                </option>
+              {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-span-1">
+            <label for="user_id" class="block text-sm font-medium text-gray-700">請款人 (可選)</label>
+            <select name="user_id" id="user_id"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- 無 --</option>
+              {% for emp in all_employees %}
+                <option value="{{ emp.id }}" {% if (fee and fee.user_id == emp.id) or (not fee and selected_vehicle_id and all_vehicles | selectattr('id', 'equalto', selected_vehicle_id) | map(attribute='user_id') | first == emp.id) %}selected{% endif %}>
+                  {{ emp.name }}
+                </option>
+              {% endfor %}
+            </select>
+        </div>
+
+        <hr class="col-span-1 md:col-span-2 my-2">
+
+        <div>
+          <label for="fee_type" class="block text-sm font-medium text-gray-700">費用類型</label>
+          <select name="fee_type" id="fee_type" required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            {% for ft in fee_types %}
+              <option value="{{ ft.value }}" {% if fee and fee.fee_type == ft %}selected{% endif %}>
+                {{ fee_type_map.get(ft.value, ft.value) }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="amount" class="block text-sm font-medium text-gray-700">金額</label>
+          <input type="number" step="0.01" name="amount" id="amount" value="{{ fee.amount if fee else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="receive_date" class="block text-sm font-medium text-gray-700">收到單據日期</label>
+          <input type="date" name="receive_date" id="receive_date" 
+                 value="{{ fee.receive_date.strftime('%Y-%m-%d') if fee and fee.receive_date else '' }}" 
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="request_date" class="block text-sm font-medium text-gray-700">請款日期</Gabel>
+          <input type="date" name="request_date" id="request_date" 
+                 value="{{ fee.request_date.strftime('%Y-%m-%d') if fee and fee.request_date else '' }}" 
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="invoice_number" class="block text-sm font-medium text-gray-700">發票號碼</label>
+          <input type="text" name="invoice_number" id="invoice_number" value="{{ fee.invoice_number if fee else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="flex items-center pt-6">
+            <input id="is_paid" name="is_paid" type="checkbox" value="True" 
+                   {% if fee and fee.is_paid %}checked{% endif %}
+                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <label for="is_paid" class="ml-2 block text-sm text-gray-900">已請款</label>
+        </div>
+
+        <div class="col-span-1 md:col-span-2">
+            <label for="notes" class="block text-sm font-medium text-gray-700">備註/項目</label>
+            <textarea name="notes" id="notes" rows="3"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >{{ fee.notes if fee else '' }}</textarea>
+        </div>
+
+      </div>
+
+      <div class="mt-6 flex justify-end space-x-3">
+        <button type="button" 
+                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+                hx-on:click="this.closest('.fixed').remove()"
+        >
+          取消
+        </button>
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+        >
+          儲存
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>

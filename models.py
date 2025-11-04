@@ -224,7 +224,7 @@ class Fee(Base):
     amount = Column(Numeric(12, 2), nullable=True, info={"label": "金額"})
     
     # (v7) 新增欄位
-    is_paid = Column(Boolean, default=False, info={"label": "已給(已付款)"})
+    is_paid = Column(Boolean, default=False, info={"label": "已給(已請款)"})
     
     period_start = Column(Date, nullable=True, info={"label": "費用區間(起)"})
     period_end = Column(Date, nullable=True, info={"label": "費用區間(迄)"})

@@ -1,0 +1,24 @@
+<div>
+  <div class="mb-4 flex justify-between items-center">
+    <h2 class="text-3xl font-bold text-gray-800">
+      費用/請款 (全列表)
+    </h2>
+    <button 
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
+      hx-get="/fee/new"
+      hx-target="#modal-container"
+      hx-swap="beforeend"
+    >
+      + 新增費用單
+    </button>
+  </div>
+
+  <div 
+    id="fee-list-container"
+    hx-get="/fee-list-all"
+    hx-trigger="load, refreshFeeListAll from:body"
+    hx-swap="innerHTML"
+  >
+    <p class="p-6 text-gray-500">正在載入所有費用紀錄...</p>
+  </div>
+</div>

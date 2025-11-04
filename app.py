@@ -17,7 +17,8 @@ from sqlalchemy.orm import sessionmaker, Session, joinedload
 from models import (
     Base, Vehicle, Employee, 
     VehicleType, VehicleStatus,
-    Maintenance, MaintenanceCategory, Fee, FeeType
+    Maintenance, MaintenanceCategory, Fee, FeeType,
+    Inspection, InspectionKind
 )
 from config import settings, UPLOAD_PATH
 
@@ -36,6 +37,24 @@ MAINTENANCE_CATEGORY_MAP = {
     "carwash": "一般洗車",
     "deep_cleaning": "手工洗車",
     "ritual_cleaning": "淨車",
+}
+
+INSPECTION_KIND_MAP = {
+    "periodic": "定期檢驗",
+    "emission": "排氣檢驗",
+    "reinspection": "複檢",
+}
+
+FEE_TYPE_MAP = {
+    "fuel_fee": "加油費",
+    "parking": "停車費",
+    "maintenance_service": "保養服務",
+    "repair_parts": "維修零件",
+    "inspection_fee": "檢驗費",
+    "supplies": "用品/雜項",
+    "toll": "E-Tag/過路費",
+    "license_tax": "稅金",
+    "other": "其他",
 }
 
 app = FastAPI(title="公務車管理系統")
@@ -59,6 +78,8 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOAD_PATH)), name="uploads")
 templates.env.globals['vehicle_type_map'] = VEHICLE_TYPE_MAP
 templates.env.globals['vehicle_status_map'] = VEHICLE_STATUS_MAP
 templates.env.globals['maintenance_category_map'] = MAINTENANCE_CATEGORY_MAP
+templates.env.globals['inspection_kind_map'] = INSPECTION_KIND_MAP
+templates.env.globals['fee_type_map'] = FEE_TYPE_MAP
 
 # --- 頁面路由 ---
 @app.get("/")
@@ -129,8 +150,7 @@ async def get_employees_list(request: Request, db: Session = Depends(get_db)):
     )
 
 
-# --- (!!!) 車輛 CRUD (!!!) ---
-
+# --- 車輛 CRUD ---
 @app.get("/vehicle/new")
 @app.get("/vehicle/{vehicle_id}/edit")
 async def get_vehicle_form(
@@ -198,14 +218,14 @@ async def create_or_update_vehicle(
     vehicle.make = make
     vehicle.model = model
     
-    # (!!!) 1. 補上缺失的 commit (!!!)
+    # 1. 補上缺失的 commit
     try:
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
     
-    # (!!!) 2. 補上缺失的 HX-Trigger (!!!)
+    # 2. 補上缺失的 HX-Trigger
     return Response(
         status_code=200,
         headers={"HX-Trigger": "refreshVehicleList"}
@@ -230,7 +250,7 @@ async def delete_vehicle(
     
     return Response(status_code=200)
 
-# --- (!!!) 員工 CRUD (!!!) ---
+# --- 員工 CRUD ---
 
 @app.get("/employee/new")
 @app.get("/employee/{employee_id}/edit")
@@ -287,7 +307,7 @@ async def create_or_update_employee(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    # (!!!) 觸發「員工」列表刷新 (!!!)
+    # 觸發「員工」列表刷新
     return Response(
         status_code=200,
         headers={"HX-Trigger": "refreshEmployeeList"}
@@ -352,7 +372,7 @@ async def get_maintenance_list_all(
         .options(
             joinedload(Maintenance.user), 
             joinedload(Maintenance.handler),
-            joinedload(Maintenance.vehicle) # (!!!) 需要額外 join 車輛
+            joinedload(Maintenance.vehicle) # 需要額外 join 車輛
         )
         .order_by(desc(Maintenance.performed_on)) # 依執行日期倒序
     )
@@ -514,6 +534,382 @@ async def delete_maintenance(
     return Response(
         status_code=200,
         headers={"HX-Trigger": "refreshMaintenanceList, refreshMaintenanceListAll"}
+    )
+
+# --- 檢驗紀錄 CRUD ---
+
+@app.get("/inspection-management")
+async def get_inspection_page(request: Request):
+    """ 渲染「檢驗管理 (全列表)」的主頁面 """
+    return templates.TemplateResponse(
+        name="pages/inspection_management.html",
+        context={"request": request}
+    )
+
+@app.get("/inspection-list-all")
+async def get_inspection_list_all(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """ 取得「所有」車輛的檢驗列表 (片段) """
+    stmt = (
+        select(Inspection)
+        .options(
+            joinedload(Inspection.user), 
+            joinedload(Inspection.handler),
+            joinedload(Inspection.vehicle)
+        )
+        .order_by(desc(Inspection.inspected_on), desc(Inspection.notification_date))
+    )
+    inspection_records = db.scalars(stmt).all()
+
+    return templates.TemplateResponse(
+        name="fragments/inspection_list_all.html",
+        context={
+            "request": request,
+            "inspection_records": inspection_records,
+        }
+    )
+
+@app.get("/vehicle/{vehicle_id}/inspection-list")
+async def get_inspection_list(
+    request: Request,
+    vehicle_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 取得「單一車輛」的檢驗列表 (片段) """
+    stmt = (
+        select(Inspection)
+        .where(Inspection.vehicle_id == vehicle_id)
+        .options(
+            joinedload(Inspection.user), 
+            joinedload(Inspection.handler)
+        )
+        .order_by(desc(Inspection.inspected_on), desc(Inspection.notification_date))
+    )
+    inspection_records = db.scalars(stmt).all()
+
+    return templates.TemplateResponse(
+        name="fragments/inspection_list.html",
+        context={
+            "request": request,
+            "inspection_records": inspection_records,
+            "vehicle_id": vehicle_id
+        }
+    )
+
+@app.get("/inspection/new")
+@app.get("/inspection/{insp_id}/edit")
+async def get_inspection_form(
+    request: Request,
+    vehicle_id: Optional[UUID] = None,
+    insp_id: Optional[UUID] = None,
+    db: Session = Depends(get_db)
+):
+    """ 取得檢驗紀錄的「新增」或「編輯」表單 (Modal) """
+    insp = None
+    all_vehicles = None
+    if insp_id:
+        # 編輯模式
+        insp = db.get(Inspection, insp_id)
+        if not insp:
+            raise HTTPException(status_code=404, detail="Inspection record not found")
+        vehicle_id = insp.vehicle_id
+    else:
+        # 新增模式
+        all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+
+    return templates.TemplateResponse(
+        name="fragments/inspection_form.html",
+        context={
+            "request": request,
+            "insp": insp,
+            "selected_vehicle_id": vehicle_id, 
+            "all_employees": all_employees,
+            "all_vehicles": all_vehicles,
+            "inspection_kinds": list(InspectionKind),
+        }
+    )
+
+@app.post("/inspection/new")
+@app.post("/inspection/{insp_id}/edit")
+async def create_or_update_inspection(
+    request: Request,
+    db: Session = Depends(get_db),
+    insp_id: Optional[UUID] = None,
+    # --- (!!!) 接收表單欄位 (!!!) ---
+    vehicle_id: Optional[UUID] = Form(None), 
+    kind: InspectionKind = Form(...),
+    notification_date: Optional[date] = Form(None),
+    deadline_date: Optional[date] = Form(None),
+    inspected_on: Optional[date] = Form(None),
+    return_date: Optional[date] = Form(None),
+    user_id: Optional[str] = Form(None),
+    handler_id: Optional[str] = Form(None),
+    amount: Optional[Decimal] = Form(None),
+    is_reconciled: bool = Form(False),
+    result: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    handler_notes: Optional[str] = Form(None),
+    notification_source: Optional[str] = Form(None),
+    next_due_on: Optional[date] = Form(None)
+):
+    """ 處理檢驗紀錄的「新增」或「儲存」 """
+
+    user_uuid = UUID(user_id) if user_id else None
+    handler_uuid = UUID(handler_id) if handler_id else None
+
+    if insp_id:
+        # 編輯模式
+        insp = db.get(Inspection, insp_id)
+        if not insp:
+            raise HTTPException(status_code=404, detail="Inspection record not found")
+    else:
+        # 新增模式
+        if not vehicle_id:
+             raise HTTPException(status_code=400, detail="必須選擇一輛車")
+        insp = Inspection()
+        insp.vehicle_id = vehicle_id
+        db.add(insp)
+
+    # 更新欄位
+    insp.kind = kind
+    insp.notification_date = notification_date
+    insp.deadline_date = deadline_date
+    insp.inspected_on = inspected_on
+    insp.return_date = return_date
+    insp.user_id = user_uuid
+    insp.handler_id = handler_uuid
+    insp.amount = amount
+    insp.is_reconciled = is_reconciled
+    insp.result = result
+    insp.notes = notes
+    insp.handler_notes = handler_notes
+    insp.notification_source = notification_source
+    insp.next_due_on = next_due_on
+
+    try:
+        # (!!!) 自動建立費用 (!!!)
+        if amount and amount > 0:
+            fee_user_id = handler_uuid if handler_uuid else user_uuid
+
+            new_fee = Fee(
+                vehicle_id=insp.vehicle_id,
+                user_id=fee_user_id,
+                receive_date=inspected_on or notification_date,
+                request_date=inspected_on or notification_date,
+                fee_type=FeeType.inspection_fee,
+                amount=amount,
+                is_paid=is_reconciled,
+                notes=f"自動建立 - 檢驗費: {INSPECTION_KIND_MAP.get(kind.value, kind.value)}"
+            )
+            db.add(new_fee)
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # 觸發列表刷新
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshInspectionList, refreshInspectionListAll"}
+    )
+
+@app.delete("/inspection/{insp_id}/delete")
+async def delete_inspection(
+    insp_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 刪除一筆檢驗紀錄 """
+    insp = db.get(Inspection, insp_id)
+    if not insp:
+        return Response(status_code=200)
+
+    try:
+        db.delete(insp)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"刪除失敗: {e}")
+
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshInspectionList, refreshInspectionListAll"}
+    )
+
+# --- 費用紀錄 CRUD ---
+@app.get("/fee-management")
+async def get_fee_page(request: Request):
+    """ 渲染「費用管理 (全列表)」的主頁面 """
+    return templates.TemplateResponse(
+        name="pages/fee_management.html",
+        context={"request": request}
+    )
+
+@app.get("/fee-list-all")
+async def get_fee_list_all(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """ 取得「所有」車輛/人員的費用列表 (片段) """
+    stmt = (
+        select(Fee)
+        .options(
+            joinedload(Fee.user), # 請款人
+            joinedload(Fee.vehicle) # 關聯車輛
+        )
+        .order_by(desc(Fee.receive_date), desc(Fee.request_date))
+    )
+    fee_records = db.scalars(stmt).all()
+
+    return templates.TemplateResponse(
+        name="fragments/fee_list_all.html",
+        context={
+            "request": request,
+            "fee_records": fee_records,
+        }
+    )
+
+@app.get("/vehicle/{vehicle_id}/fee-list")
+async def get_fee_list(
+    request: Request,
+    vehicle_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 取得「單一車輛」的費用列表 (片段) """
+    stmt = (
+        select(Fee)
+        .where(Fee.vehicle_id == vehicle_id)
+        .options(
+            joinedload(Fee.user) # 請款人
+        )
+        .order_by(desc(Fee.receive_date), desc(Fee.request_date))
+    )
+    fee_records = db.scalars(stmt).all()
+
+    return templates.TemplateResponse(
+        name="fragments/fee_list.html",
+        context={
+            "request": request,
+            "fee_records": fee_records,
+            "vehicle_id": vehicle_id
+        }
+    )
+
+@app.get("/fee/new")
+@app.get("/fee/{fee_id}/edit")
+async def get_fee_form(
+    request: Request,
+    vehicle_id: Optional[UUID] = None, # 來自車輛詳情頁
+    fee_id: Optional[UUID] = None,
+    db: Session = Depends(get_db)
+):
+    """ 取得費用紀錄的「新增」或「編輯」表單 (Modal) """
+    fee = None
+    all_vehicles = None
+    if fee_id:
+        # 編輯模式
+        fee = db.get(Fee, fee_id)
+        if not fee:
+            raise HTTPException(status_code=404, detail="Fee record not found")
+        vehicle_id = fee.vehicle_id # 從紀錄取得 vehicle_id
+
+    # 費用表單「永遠」需要所有車輛和員工
+    all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+
+    return templates.TemplateResponse(
+        name="fragments/fee_form.html",
+        context={
+            "request": request,
+            "fee": fee,
+            "selected_vehicle_id": vehicle_id, 
+            "all_employees": all_employees,
+            "all_vehicles": all_vehicles,
+            "fee_types": list(FeeType),
+        }
+    )
+
+@app.post("/fee/new")
+@app.post("/fee/{fee_id}/edit")
+async def create_or_update_fee(
+    request: Request,
+    db: Session = Depends(get_db),
+    fee_id: Optional[UUID] = None,
+    # --- 接收表單欄位 ---
+    # 費用模型的 vehicle_id 和 user_id 允許為 None
+    vehicle_id: Optional[str] = Form(None), 
+    user_id: Optional[str] = Form(None), 
+
+    fee_type: FeeType = Form(...),
+    amount: Optional[Decimal] = Form(None),
+    receive_date: Optional[date] = Form(None),
+    request_date: Optional[date] = Form(None),
+    is_paid: bool = Form(False),
+    invoice_number: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None)
+):
+    """ 處理費用紀錄的「新增」或「儲存」 """
+
+    vehicle_uuid = UUID(vehicle_id) if vehicle_id else None
+    user_uuid = UUID(user_id) if user_id else None
+
+    if fee_id:
+        # 編輯模式
+        fee = db.get(Fee, fee_id)
+        if not fee:
+            raise HTTPException(status_code=404, detail="Fee record not found")
+    else:
+        # 新增模式
+        fee = Fee()
+        db.add(fee)
+
+    # 更新欄位
+    fee.vehicle_id = vehicle_uuid
+    fee.user_id = user_uuid
+    fee.fee_type = fee_type
+    fee.amount = amount
+    fee.receive_date = receive_date
+    fee.request_date = request_date
+    fee.is_paid = is_paid
+    fee.invoice_number = invoice_number
+    fee.notes = notes
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # 觸發列表刷新
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshFeeList, refreshFeeListAll"}
+    )
+
+@app.delete("/fee/{fee_id}/delete")
+async def delete_fee(
+    fee_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 刪除一筆費用紀錄 """
+    fee = db.get(Fee, fee_id)
+    if not fee:
+        return Response(status_code=200)
+
+    try:
+        db.delete(fee)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"刪除失敗: {e}")
+
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshFeeList, refreshFeeListAll"}
     )
 
 # --- 健康檢查 ---
