@@ -409,7 +409,7 @@ async def get_maintenance_page(request: Request):
         context={"request": request}
     )
 
-@app.post("/vehicle/{vehicle_id}/maintenance/new")
+@app.post("/maintenance/new")
 @app.post("/maintenance/{maint_id}/edit")
 async def create_or_update_maintenance(
     request: Request,
@@ -440,6 +440,8 @@ async def create_or_update_maintenance(
         if not maint:
             raise HTTPException(status_code=404, detail="Maintenance record not found")
     else:
+        if not vehicle_id:
+            raise HTTPException(status_code=400, detail="必須選擇一輛車")
         # 新增模式
         maint = Maintenance()
         maint.vehicle_id = vehicle_id

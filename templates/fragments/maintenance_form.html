@@ -16,8 +16,7 @@
       {% if maint %}
         hx-post="/maintenance/{{ maint.id }}/edit"
       {% else %}
-        hx-post="/vehicle/{{ vehicle_id }}/maintenance/new"
-      {% endif %}
+        hx-post="/maintenance/new" {% endif %}
       
       hx-on="htmx:afterOnLoad: this.closest('.fixed').remove()"
     >

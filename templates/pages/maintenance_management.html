@@ -1,7 +1,5 @@
 <div 
-  hx-target="this"
-  hx-swap="outerHTML"
->
+  >
   <div class="mb-4 flex justify-between items-center">
     <h2 class="text-3xl font-bold text-gray-800">
       保養維修 (全列表)
@@ -19,7 +17,7 @@
   <div 
     id="maintenance-list-container"
     hx-get="/maintenance-list-all"
-    hx-trigger="load"
+    hx-trigger="load, refreshMaintenanceListAll from:body"
     hx-swap="innerHTML"
   >
     <p class="p-6 text-gray-500">正在載入所有保養紀錄...</p>
