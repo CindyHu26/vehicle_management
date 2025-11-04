@@ -28,7 +28,8 @@
                            hx-get="/vehicles-list"
                            hx-target="#main-content"
                            hx-swap="innerHTML"
-                           hx-trigger="load" 
+                           
+                           hx-trigger="load, click" 
                         >
                           車輛管理
                         </a>
@@ -41,6 +42,17 @@
                            hx-swap="innerHTML"
                         >
                           員工管理
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" 
+                        class="block px-4 py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+                        hx-get="/maintenance-management"
+                        hx-target="#main-content"
+                        hx-swap="innerHTML"
+                        hx-trigger="click"
+                        >
+                        保養管理 (全)
                         </a>
                     </li>
                     </ul>

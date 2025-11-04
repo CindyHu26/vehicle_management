@@ -1,0 +1,67 @@
+<div
+  hx-trigger="refreshMaintenanceListAll from:body"
+  hx-get="/maintenance-list-all"
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+  <div class="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-md">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">車輛</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">執行日期</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">類別</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">廠商</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">金額</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">使用人</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">備註</th>
+          <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% if not maintenance_records %}
+          <tr>
+            <td colspan="9" class="px-4 py-4 text-center text-sm text-gray-500">
+              尚無保養維修紀錄
+            </td>
+          </tr>
+        {% endif %} 
+
+        {% for record in maintenance_records %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+            {{ record.vehicle.plate_no if record.vehicle else 'N/A' }}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">{{ record.performed_on.strftime('%Y-%m-%d') if record.performed_on else 'N/A' }}</td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
+            {{ maintenance_category_map.get(record.category.value, record.category.value) }}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ record.vendor or 'N/A' }}</td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}</td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ record.user.name if record.user else 'N/A' }}</td>
+          <td class="px-4 py-4 text-sm text-gray-700 truncate" style="max-width: 150px;">{{ record.notes or '' }}</td>
+          <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <button
+              class="text-blue-600 hover:text-blue-900"
+              hx-get="/maintenance/{{ record.id }}/edit"
+              hx-target="#modal-container"
+              hx-swap="beforeend"
+            >
+              編輯
+            </button>
+            <button
+              class="text-red-600 hover:text-red-900 ml-4"
+              hx-delete="/maintenance/{{ record.id }}/delete"
+              hx-target="closest tr"
+              hx-swap="outerHTML"
+              hx-confirm="確定要刪除這筆保養紀錄嗎？"
+            >
+              刪除
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

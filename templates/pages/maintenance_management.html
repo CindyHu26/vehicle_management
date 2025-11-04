@@ -1,0 +1,27 @@
+<div 
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+  <div class="mb-4 flex justify-between items-center">
+    <h2 class="text-3xl font-bold text-gray-800">
+      保養維修 (全列表)
+    </h2>
+    <button 
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
+      hx-get="/maintenance/new"
+      hx-target="#modal-container"
+      hx-swap="beforeend"
+    >
+      + 新增保養紀錄
+    </button>
+  </div>
+
+  <div 
+    id="maintenance-list-container"
+    hx-get="/maintenance-list-all"
+    hx-trigger="load"
+    hx-swap="innerHTML"
+  >
+    <p class="p-6 text-gray-500">正在載入所有保養紀錄...</p>
+  </div>
+</div>

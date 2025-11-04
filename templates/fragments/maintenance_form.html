@@ -1,0 +1,148 @@
+<div 
+  class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50"
+  hx-on:click="if (event.target === this) this.remove()"
+>
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    
+    <h2 class="text-2xl font-semibold mb-4">
+      {% if maint %}
+        編輯保養紀錄
+      {% else %}
+        新增保養紀錄
+      {% endif %}
+    </h2>
+
+    <form 
+      {% if maint %}
+        hx-post="/maintenance/{{ maint.id }}/edit"
+      {% else %}
+        hx-post="/vehicle/{{ vehicle_id }}/maintenance/new"
+      {% endif %}
+      
+      hx-on="htmx:afterOnLoad: this.closest('.fixed').remove()"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        {% if not maint %}
+        <div class="col-span-1 md:col-span-2">
+            <label for="vehicle_id" class="block text-sm font-medium text-gray-700">車輛</label>
+            <select name="vehicle_id" id="vehicle_id" required
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- 請選擇車輛 --</option>
+              {% for v in all_vehicles %}
+                <option value="{{ v.id }}" {% if selected_vehicle_id and selected_vehicle_id == v.id %}selected{% endif %}>
+                  {{ v.plate_no }} ({{ v.model or 'N/A' }})
+                </option>
+              {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div>
+          <label for="performed_on" class="block text-sm font-medium text-gray-700">執行日期</label>
+          <input type="date" name="performed_on" id="performed_on" 
+                 value="{{ maint.performed_on.strftime('%Y-%m-%d') if maint and maint.performed_on else '' }}" 
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="category" class="block text-sm font-medium text-gray-700">類別</label>
+          <select name="category" id="category" required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            {% for cat in maintenance_categories %}
+              <option value="{{ cat.value }}" {% if maint and maint.category == cat %}selected{% endif %}>
+                {{ maintenance_category_map.get(cat.value, cat.value) }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="user_id" class="block text-sm font-medium text-gray-700">當時使用人</label>
+          <select name="user_id" id="user_id" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- 無 --</option>
+            {% for emp in all_employees %}
+              <option value="{{ emp.id }}" {% if maint and maint.user_id == emp.id %}selected{% endif %}>
+                {{ emp.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="handler_id" class="block text-sm font-medium text-gray-700">行政處理人</label>
+          <select name="handler_id" id="handler_id" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- 無 --</option>
+            {% for emp in all_employees %}
+              <option value="{{ emp.id }}" {% if maint and maint.handler_id == emp.id %}selected{% endif %}>
+                {{ emp.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-span-1 md:col-span-2">
+          <label for="vendor" class="block text-sm font-medium text-gray-700">廠商</label>
+          <input type="text" name="vendor" id="vendor" value="{{ maint.vendor if maint else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="odometer_km" class="block text-sm font-medium text-gray-700">當時實際里程 (km)</label>
+          <input type="number" name="odometer_km" id="odometer_km" value="{{ maint.odometer_km if maint else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div>
+          <label for="amount" class="block text-sm font-medium text-gray-700">金額 (填入會自動產生費用單)</label>
+          <input type="number" step="0.01" name="amount" id="amount" value="{{ maint.amount if maint else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+            <label for="return_date" class="block text-sm font-medium text-gray-700">牽車(回)日期</label>
+            <input type="date" name="return_date" id="return_date" 
+                   value="{{ maint.return_date.strftime('%Y-%m-%d') if maint and maint.return_date else '' }}" 
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="flex items-center pt-6">
+            <input id="is_reconciled" name="is_reconciled" type="checkbox" value="True" 
+                   {% if maint and maint.is_reconciled %}checked{% endif %}
+                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <label for="is_reconciled" class="ml-2 block text-sm text-gray-900">已對帳 (勾選會自動標記費用單)</label>
+        </div>
+
+        <div class="col-span-1 md:col-span-2">
+            <label for="notes" class="block text-sm font-medium text-gray-700">維修細節(附註)</label>
+            <textarea name="notes" id="notes" rows="3"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >{{ maint.notes if maint else '' }}</textarea>
+        </div>
+
+        <div class="col-span-1 md:col-span-2">
+            <label for="handler_notes" class="block text-sm font-medium text-gray-700">聯絡事宜(備註-2)</label>
+            <textarea name="handler_notes" id="handler_notes" rows="2"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >{{ maint.handler_notes if maint else '' }}</textarea>
+        </div>
+
+      </div>
+
+      <div class="mt-6 flex justify-end space-x-3">
+        <button type="button" 
+                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+                hx-on:click="this.closest('.fixed').remove()"
+        >
+          取消
+        </button>
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+        >
+          儲存
+        </button>
+      </div>
+    </form>
+    
+  </div>
+</div>
