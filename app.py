@@ -57,6 +57,34 @@ async def get_main_page(request: Request):
         context={"request": request}
     )
 
+@app.get("/vehicle/{vehicle_id}")
+async def get_vehicle_detail_page(
+    request: Request, 
+    vehicle_id: UUID, 
+    db: Session = Depends(get_db)
+):
+    """
+    渲染「單一車輛詳情」的主頁面。
+    這個頁面將作為儀表板，用來載入相關的子項目 (如保養、檢驗等)。
+    """
+    stmt = (
+        select(Vehicle)
+        .options(joinedload(Vehicle.user)) 
+        .where(Vehicle.id == vehicle_id)
+    )
+    vehicle = db.scalar(stmt)
+    
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="找不到該車輛")
+
+    return templates.TemplateResponse(
+        name="pages/vehicle_detail_page.html", # 我們即將建立這個新模板
+        context={
+            "request": request,
+            "vehicle": vehicle,
+        }
+    )
+
 # --- 列表 API (車輛) ---
 @app.get("/vehicles-list")
 async def get_vehicles_list(request: Request, db: Session = Depends(get_db)):

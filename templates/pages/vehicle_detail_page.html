@@ -1,0 +1,83 @@
+<div 
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+  <div class="mb-4 flex justify-between items-center">
+    <div>
+      <h2 class="text-3xl font-bold text-gray-800">
+        {{ vehicle.plate_no }}
+      </h2>
+      <p class="text-lg text-gray-600">
+        {{ vehicle_type_map.get(vehicle.vehicle_type.value, vehicle.vehicle_type.value) }} / {{ vehicle.model or 'N/A' }}
+      </p>
+    </div>
+    <button 
+      class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600 transition duration-300"
+      hx-get="/vehicles-list"
+      hx-target="#main-content"
+      hx-swap="innerHTML"
+    >
+      &larr; 返回車輛列表
+    </button>
+  </div>
+
+  <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">車輛資料</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <span class="text-sm font-medium text-gray-500">主要使用人</span>
+        <p class="text-base text-gray-900">{{ vehicle.user.name if vehicle.user else 'N/A' }}</p>
+      </div>
+      <div>
+        <span class="text-sm font-medium text-gray-500">狀態</span>
+        <p class="text-base text-gray-900">
+          {% if vehicle.status.value == 'active' %}
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+              {{ vehicle_status_map.get(vehicle.status.value, '啟用中') }}
+            </span>
+          {% elif vehicle.status.value == 'retired' %}
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+              {{ vehicle_status_map.get(vehicle.status.value, '已報廢') }}
+            </span>
+          {% else %}
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+              {{ vehicle_status_map.get(vehicle.status.value, vehicle.status.value) }}
+            </span>
+          {% endif %}
+        </p>
+      </div>
+      <div>
+        <span class="text-sm font-medium text-gray-500">所屬公司</span>
+        <p class="text-base text-gray-900">{{ vehicle.company or 'N/A' }}</p>
+      </div>
+      <div>
+        <span class="text-sm font-medium text-gray-500">品牌</span>
+        <p class="text-base text-gray-900">{{ vehicle.make or 'N/A' }}</p>
+      </div>
+      <div>
+        <span class="text-sm font-medium text-gray-500">型號</span>
+        <p class="text-base text-gray-900">{{ vehicle.model or 'N/A' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white shadow-md rounded-lg">
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <a href="#" class="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" aria-current="page">
+          保養維修 (即將推出)
+        </a>
+        <a href="#" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          檢驗紀錄 (即將推出)
+        </a>
+        <a href="#" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+          費用紀錄 (即將推出)
+        </a>
+      </nav>
+    </div>
+    
+    <div class="p-6">
+      <p class="text-gray-500">相關功能即將在「任務 2」中加入...</p>
+    </div>
+  </div>
+</div>
