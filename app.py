@@ -18,7 +18,8 @@ from models import (
     Base, Vehicle, Employee, 
     VehicleType, VehicleStatus,
     Maintenance, MaintenanceCategory, Fee, FeeType,
-    Inspection, InspectionKind
+    Inspection, InspectionKind,
+    VehicleAssetLog, AssetType, AssetStatus, Disposal
 )
 from config import settings, UPLOAD_PATH
 
@@ -57,6 +58,22 @@ FEE_TYPE_MAP = {
     "other": "其他",
 }
 
+# 資產類型翻譯字典
+ASSET_TYPE_MAP = {
+    "key": "鑰匙",
+    "dashcam": "行車紀錄器",
+    "etag": "E-Tag",
+    "other": "其他",
+}
+
+# 資產狀態翻譯字典
+ASSET_STATUS_MAP = {
+    "assigned": "已指派",
+    "returned": "已歸還",
+    "lost": "遺失",
+    "disposed": "已報廢/處理",
+}
+
 app = FastAPI(title="公務車管理系統")
 
 # --- DB 連線與 Session ---
@@ -80,6 +97,8 @@ templates.env.globals['vehicle_status_map'] = VEHICLE_STATUS_MAP
 templates.env.globals['maintenance_category_map'] = MAINTENANCE_CATEGORY_MAP
 templates.env.globals['inspection_kind_map'] = INSPECTION_KIND_MAP
 templates.env.globals['fee_type_map'] = FEE_TYPE_MAP
+templates.env.globals['asset_type_map'] = ASSET_TYPE_MAP
+templates.env.globals['asset_status_map'] = ASSET_STATUS_MAP
 
 # --- 頁面路由 ---
 @app.get("/")
@@ -911,6 +930,232 @@ async def delete_fee(
         status_code=200,
         headers={"HX-Trigger": "refreshFeeList, refreshFeeListAll"}
     )
+@app.get("/vehicle/{vehicle_id}/asset-log-list")
+async def get_asset_log_list(
+    request: Request,
+    vehicle_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 取得「單一車輛」的資產日誌 (片段) """
+    stmt = (
+        select(VehicleAssetLog)
+        .where(VehicleAssetLog.vehicle_id == vehicle_id)
+        .options(joinedload(VehicleAssetLog.user))
+        .order_by(desc(VehicleAssetLog.log_date))
+    )
+    asset_logs = db.scalars(stmt).all()
+
+    return templates.TemplateResponse(
+        name="fragments/asset_log_list.html",
+        context={
+            "request": request,
+            "asset_logs": asset_logs,
+            "vehicle_id": vehicle_id
+        }
+    )
+
+@app.get("/asset-log/new")
+@app.get("/asset-log/{log_id}/edit")
+async def get_asset_log_form(
+    request: Request,
+    vehicle_id: Optional[UUID] = None, # 來自車輛詳情頁
+    log_id: Optional[UUID] = None,
+    db: Session = Depends(get_db)
+):
+    """ 取得資產日誌的「新增」或「編輯」表單 (Modal) """
+    log = None
+    if log_id:
+        log = db.get(VehicleAssetLog, log_id)
+        if not log:
+            raise HTTPException(status_code=404, detail="Asset log not found")
+        vehicle_id = log.vehicle_id # 編輯時鎖定 vehicle_id
+
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+
+    return templates.TemplateResponse(
+        name="fragments/asset_log_form.html",
+        context={
+            "request": request,
+            "log": log,
+            "vehicle_id": vehicle_id, # 必須傳入，用於 POST
+            "all_employees": all_employees,
+            "asset_types": list(AssetType),
+            "asset_statuses": list(AssetStatus),
+        }
+    )
+
+@app.post("/asset-log/new")
+@app.post("/asset-log/{log_id}/edit")
+async def create_or_update_asset_log(
+    request: Request,
+    db: Session = Depends(get_db),
+    log_id: Optional[UUID] = None,
+    vehicle_id: UUID = Form(...), # 隱藏欄位
+    user_id: Optional[str] = Form(None),
+    asset_type: AssetType = Form(...),
+    description: Optional[str] = Form(None),
+    status: AssetStatus = Form(...),
+    log_date: date = Form(...),
+    notes: Optional[str] = Form(None)
+):
+    """ 處理資產日誌的「新增」或「儲存」 """
+
+    user_uuid = UUID(user_id) if user_id else None
+
+    if log_id:
+        log = db.get(VehicleAssetLog, log_id)
+        if not log:
+            raise HTTPException(status_code=404, detail="Asset log not found")
+    else:
+        log = VehicleAssetLog()
+        log.vehicle_id = vehicle_id
+        db.add(log)
+
+    # 更新欄位
+    log.user_id = user_uuid
+    log.asset_type = asset_type
+    log.description = description
+    log.status = status
+    log.log_date = log_date
+    log.notes = notes
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshAssetLogList"}
+    )
+
+@app.delete("/asset-log/{log_id}/delete")
+async def delete_asset_log(
+    log_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 刪除一筆資產日誌 """
+    log = db.get(VehicleAssetLog, log_id)
+    if log:
+        try:
+            db.delete(log)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=f"刪除失敗: {e}")
+
+    return Response(status_code=200)
+
+
+# --- (!!!) 任務 5 (Part B)：報廢管理 (!!!) ---
+# 報廢管理比較特殊，一台車只有一筆紀錄，所以我們不
+# 做列表，而是直接做「Get/Create/Update/Delete」
+
+@app.get("/vehicle/{vehicle_id}/disposal-form")
+async def get_disposal_form(
+    request: Request,
+    vehicle_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 取得「單一車輛」的報廢表單 (片段) """
+    # 一台車只會有一筆報廢紀錄
+    stmt = select(Disposal).where(Disposal.vehicle_id == vehicle_id)
+    disposal = db.scalar(stmt)
+
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+
+    return templates.TemplateResponse(
+        name="fragments/disposal_form.html",
+        context={
+            "request": request,
+            "disposal": disposal,
+            "vehicle_id": vehicle_id,
+            "all_employees": all_employees
+        }
+    )
+
+@app.post("/vehicle/{vehicle_id}/disposal-form")
+async def create_or_update_disposal(
+    request: Request,
+    vehicle_id: UUID,
+    db: Session = Depends(get_db),
+    # --- 接收表單欄位 ---
+    user_id: Optional[str] = Form(None), # 原使用人
+    disposed_on: date = Form(...),
+    notification_date: Optional[date] = Form(None),
+    final_mileage: Optional[int] = Form(None),
+    reason: Optional[str] = Form(None)
+):
+    """ 儲存報廢紀錄，並更新車輛狀態 """
+
+    vehicle = db.get(Vehicle, vehicle_id)
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="找不到車輛")
+
+    stmt = select(Disposal).where(Disposal.vehicle_id == vehicle_id)
+    disposal = db.scalar(stmt)
+
+    if not disposal:
+        disposal = Disposal()
+        disposal.vehicle_id = vehicle_id
+        db.add(disposal)
+
+    # 更新欄位
+    disposal.user_id = UUID(user_id) if user_id else None
+    disposal.disposed_on = disposed_on
+    disposal.notification_date = notification_date
+    disposal.final_mileage = final_mileage
+    disposal.reason = reason
+
+    # (!!!) 重要：同時更新車輛狀態 (!!!)
+    vehicle.status = VehicleStatus.retired
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # 觸發「車輛列表」和「車輛詳情頁」刷新
+    return Response(
+        status_code=200,
+        headers={
+            "HX-Trigger": "refreshDisposalForm, refreshVehicleList, refreshVehicleDetailPage"
+        }
+    )
+
+@app.delete("/disposal/{disp_id}/delete")
+async def delete_disposal(
+    disp_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 刪除報廢紀錄 (取消報廢)，並更新車輛狀態 """
+    disposal = db.get(Disposal, disp_id)
+    if not disposal:
+        return Response(status_code=200)
+
+    vehicle = db.get(Vehicle, disposal.vehicle_id)
+
+    try:
+        if vehicle:
+            # (!!!) 重要：將車輛狀態改回「啟用中」 (!!!)
+            vehicle.status = VehicleStatus.active
+
+        db.delete(disposal)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"刪除失敗: {e}")
+
+    # 觸發「車輛列表」和「車輛詳情頁」刷新
+    return Response(
+        status_code=200,
+        headers={
+            "HX-Trigger": "refreshDisposalForm, refreshVehicleList, refreshVehicleDetailPage"
+        }
+    )
+
 
 # --- 健康檢查 ---
 @app.get("/health")

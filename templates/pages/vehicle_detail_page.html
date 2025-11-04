@@ -1,6 +1,7 @@
 <div 
   hx-target="this"
   hx-swap="outerHTML"
+  hx-trigger="refreshVehicleDetailPage from:body" 
 >
   <div class="mb-4 flex justify-between items-center">
     <div>
@@ -61,49 +62,71 @@
     </div>
   </div>
 
-<div class="bg-white shadow-md rounded-lg">
+  <div class="bg-white shadow-md rounded-lg">
     <div class="border-b border-gray-200">
       <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-        
+
         <a href="#" 
            class="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" 
            aria-current="page"
-           
            hx-get="/vehicle/{{ vehicle.id }}/maintenance-list"
            hx-target="#tab-content"
            hx-swap="innerHTML"
            hx-trigger="load, click" 
-           
            onclick="document.querySelectorAll('[aria-label=Tabs] a').forEach(el => { el.classList.remove('border-blue-500', 'text-blue-600'); el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'); }); this.classList.add('border-blue-500', 'text-blue-600'); this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');"
         >
           保養維修
         </a>
-        
-        <a href="#" 
-          class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
 
-          hx-get="/vehicle/{{ vehicle.id }}/inspection-list" hx-target="#tab-content"
-          hx-swap="innerHTML"
-          hx-trigger="click"
-          onclick="document.querySelectorAll('[aria-label=Tabs] a').forEach(el => { el.classList.remove('border-blue-500', 'text-blue-600'); el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'); }); this.classList.add('border-blue-500', 'text-blue-600'); this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');"
-        >
-          檢驗紀錄 
-        </a>
         <a href="#" 
-          class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
-
-          hx-get="/vehicle/{{ vehicle.id }}/fee-list" hx-target="#tab-content"
-          hx-swap="innerHTML"
-          hx-trigger="click"
-          onclick="document.querySelectorAll('[aria-label=Tabs] a').forEach(el => { el.classList.remove('border-blue-500', 'text-blue-600'); el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'); }); this.classList.add('border-blue-500', 'text-blue-600'); this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');"
+           class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+           hx-get="/vehicle/{{ vehicle.id }}/inspection-list"
+           hx-target="#tab-content"
+           hx-swap="innerHTML"
+           hx-trigger="click"
+           onclick="document.querySelectorAll('[aria-label=Tabs] a').forEach(el => { el.classList.remove('border-blue-500', 'text-blue-600'); el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'); }); this.classList.add('border-blue-500', 'text-blue-600'); this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');"
         >
-          費用紀錄 
+          檢驗紀錄
         </a>
+
+        <a href="#" 
+           class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+           hx-get="/vehicle/{{ vehicle.id }}/fee-list"
+           hx-target="#tab-content"
+           hx-swap="innerHTML"
+           hx-trigger="click"
+           onclick="document.querySelectorAll('[aria-label=Tabs] a').forEach(el => { el.classList.remove('border-blue-500', 'text-blue-600'); el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'); }); this.classList.add('border-blue-500', 'text-blue-600'); this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');"
+        >
+          費用紀錄
+        </a>
+
+        <a href="#" 
+           class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+           hx-get="/vehicle/{{ vehicle.id }}/asset-log-list"
+           hx-target="#tab-content"
+           hx-swap="innerHTML"
+           hx-trigger="click"
+           onclick="document.querySelectorAll('[aria-label=Tabs] a').forEach(el => { el.classList.remove('border-blue-500', 'text-blue-600'); el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'); }); this.classList.add('border-blue-500', 'text-blue-600'); this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');"
+        >
+          資產日誌
+        </a>
+
+        <a href="#" 
+           class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+           hx-get="/vehicle/{{ vehicle_id }}/disposal-form"
+           hx-target="#tab-content"
+           hx-swap="innerHTML"
+           hx-trigger="click"
+           onclick="document.querySelectorAll('[aria-label=Tabs] a').forEach(el => { el.classList.remove('border-blue-500', 'text-blue-600'); el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'); }); this.classList.add('border-blue-500', 'text-blue-600'); this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');"
+        >
+          報廢管理
+        </a>
+
       </nav>
     </div>
-    
+
     <div id="tab-content">
-      <p class="p-6 text-gray-500">正在載入保養紀錄...</p>
+      <p class="p-6 text-gray-500">正在載入...</p>
     </div>
   </div>
 </div>

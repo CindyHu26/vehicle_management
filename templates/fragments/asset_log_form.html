@@ -1,0 +1,104 @@
+<div 
+  class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50"
+  hx-on:click="if (event.target === this) this.remove()"
+>
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+    <h2 class="text-2xl font-semibold mb-4">
+      {% if log %}
+        編輯資產日誌
+      {% else %}
+        新增資產日誌
+      {% endif %}
+    </h2>
+
+    <form 
+      {% if log %}
+        hx-post="/asset-log/{{ log.id }}/edit"
+      {% else %}
+        hx-post="/asset-log/new"
+      {% endif %}
+
+      hx-on="htmx:afterOnLoad: this.closest('.fixed').remove()"
+    >
+      <input type="hidden" name="vehicle_id" value="{{ vehicle_id }}">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div>
+          <label for="log_date" class="block text-sm font-medium text-gray-700">紀錄日期</label>
+          <input type="date" name="log_date" id="log_date" 
+                 value="{{ log.log_date.strftime('%Y-%m-%d') if log and log.log_date else '' }}" 
+                 required
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+            <label for="user_id" class="block text-sm font-medium text-gray-700">保管人 (可選)</label>
+            <select name="user_id" id="user_id"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- 無 --</option>
+              {% for emp in all_employees %}
+                <option value="{{ emp.id }}" {% if log and log.user_id == emp.id %}selected{% endif %}>
+                  {{ emp.name }}
+                </option>
+              {% endfor %}
+            </select>
+        </div>
+
+        <div>
+          <label for="asset_type" class="block text-sm font-medium text-gray-700">財產類型</label>
+          <select name="asset_type" id="asset_type" required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            {% for at in asset_types %}
+              <option value="{{ at.value }}" {% if log and log.asset_type == at %}selected{% endif %}>
+                {{ asset_type_map.get(at.value, at.value) }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="status" class="block text-sm font-medium text-gray-700">狀態</label>
+          <select name="status" id="status" required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            {% for s in asset_statuses %}
+              <option value="{{ s.value }}" {% if log and log.status == s %}selected{% endif %}>
+                {{ asset_status_map.get(s.value, s.value) }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-span-1 md:col-span-2">
+          <label for="description" class="block text-sm font-medium text-gray-700">財產描述</label>
+          <input type="text" name="description" id="description" value="{{ log.description if log else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="col-span-1 md:col-span-2">
+            <label for="notes" class="block text-sm font-medium text-gray-700">備註</label>
+            <textarea name="notes" id="notes" rows="3"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >{{ log.notes if log else '' }}</textarea>
+        </div>
+
+      </div>
+
+      <div class="mt-6 flex justify-end space-x-3">
+        <button type="button" 
+                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+                hx-on:click="this.closest('.fixed').remove()"
+        >
+          取消
+        </button>
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+        >
+          儲存
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>

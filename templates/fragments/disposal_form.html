@@ -1,0 +1,102 @@
+<div
+  hx-trigger="refreshDisposalForm from:body"
+  hx-get="/vehicle/{{ vehicle_id }}/disposal-form"
+  hx-target="this"
+  hx-swap="outerHTML"
+  class="p-6"
+>
+  <h3 class="text-xl font-semibold text-gray-700 mb-4">報廢管理</h3>
+
+  {% if disposal %}
+  <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+              <span class="text-sm font-medium text-gray-500">報廢日期</span>
+              <p class="text-base text-red-900 font-bold">{{ disposal.disposed_on.strftime('%Y-%m-%d') if disposal.disposed_on else 'N/A' }}</p>
+          </div>
+          <div>
+              <span class="text-sm font-medium text-gray-500">原使用人</span>
+              <p class="text-base text-gray-900">{{ disposal.user.name if disposal.user else 'N/A' }}</p>
+          </div>
+          <div>
+              <span class="text-sm font-medium text-gray-500">最終公里數</span>
+              <p class="text-base text-gray-900">{{ "{:,.0f} km".format(disposal.final_mileage) if disposal.final_mileage else 'N/A' }}</p>
+          </div>
+          <div class="col-span-1 md:col-span-3">
+              <span class="text-sm font-medium text-gray-500">報廢原因</span>
+              <p class="text-base text-gray-900">{{ disposal.reason or 'N/A' }}</p>
+          </div>
+      </div>
+      <div class="flex justify-end">
+          <button
+            class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600"
+            hx-delete="/disposal/{{ disposal.id }}/delete"
+            hx-confirm="確定要「取消報廢」這輛車嗎？\n車輛狀態將會恢復為「啟用中」。"
+          >
+            取消報廢
+          </button>
+      </div>
+  </div>
+
+  {% else %}
+  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+    <p class="text-gray-600 mb-4">
+      此車輛目前為「啟用中」或「維修中」。填寫以下表單將此車輛標記為「已報廢」。
+    </p>
+    <form 
+      hx-post="/vehicle/{{ vehicle_id }}/disposal-form"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <div>
+          <label for="disposed_on" class="block text-sm font-medium text-gray-700">報廢日期</label>
+          <input type="date" name="disposed_on" id="disposed_on" 
+                 required
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+            <label for="user_id" class="block text-sm font-medium text-gray-700">原使用人</label>
+            <select name="user_id" id="user_id"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- 無 --</option>
+              {% for emp in all_employees %}
+                <option value="{{ emp.id }}">
+                  {{ emp.name }}
+                </option>
+              {% endfor %}
+            </select>
+        </div>
+
+        <div>
+          <label for="notification_date" class="block text-sm font-medium text-gray-700">告知報廢日期</label>
+          <input type="date" name="notification_date" id="notification_date" 
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="final_mileage" class="block text-sm font-medium text-gray-700">最終公里數</label>
+          <input type="number" name="final_mileage" id="final_mileage"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="col-span-1 md:col-span-2">
+            <label for="reason" class="block text-sm font-medium text-gray-700">報廢原因</label>
+            <textarea name="reason" id="reason" rows="3"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            ></textarea>
+        </div>
+
+      </div>
+      <div class="mt-6 flex justify-end">
+        <button type="submit"
+                class="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700"
+                hx-confirm="確定要報廢這輛車嗎？\n車輛狀態將會更新為「已報廢」。"
+        >
+          儲存報廢紀錄
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+</div>
