@@ -69,7 +69,13 @@
         <div class="col-span-2">
           <label for="company" class="block text-sm font-medium text-gray-700">所屬公司/人員</label>
           <input type="text" name="company" id="company" value="{{ vehicle.company if vehicle else '' }}"
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                 list="company-list" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          
+          <datalist id="company-list">
+            {% for comp in all_companies %}
+              <option value="{{ comp }}">
+            {% endfor %}
+          </datalist>
         </div>
         
         <div>

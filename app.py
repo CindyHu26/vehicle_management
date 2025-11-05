@@ -149,17 +149,26 @@ async def get_vehicle_form(
 
     all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
     
+    # (!!!) 修正 5：從資料庫撈出所有不重複的公司名稱 (!!!)
+    company_list_query = (
+        select(Vehicle.company)
+        .where(Vehicle.company != None) # 排除空值
+        .distinct()                     # 只選不重複的
+        .order_by(Vehicle.company)      # 排序
+    )
+    all_companies = db.scalars(company_list_query).all()
+    
     return templates.TemplateResponse(
         name="fragments/vehicle_form.html",
         context={
             "request": request,
             "vehicle": vehicle, 
             "all_employees": all_employees,
+            "all_companies": all_companies, # (!!!) 修正 6：傳遞到模板 (!!!)
             "vehicle_types": list(VehicleType), 
             "vehicle_statuses": list(VehicleStatus), 
         }
     )
-
 
 @app.get("/vehicle/{vehicle_id}")
 async def get_vehicle_detail_page(
@@ -1118,6 +1127,57 @@ async def get_asset_log_list(
         context={
             "request": request,
             "asset_logs": asset_logs,
+            "vehicle_id": vehicle_id
+        }
+    )
+
+@app.get("/vehicle/{vehicle_id}/asset-log-list")
+async def get_asset_log_list(
+    request: Request,
+    vehicle_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 取得「單一車輛」的資產日誌 (片段) """
+    
+    stmt = (
+        select(VehicleAssetLog)
+        .where(VehicleAssetLog.vehicle_id == vehicle_id)
+        .options(joinedload(VehicleAssetLog.user))
+        .order_by(desc(VehicleAssetLog.log_date)) # 依日期倒序
+    )
+    asset_logs = db.scalars(stmt).all()
+
+    # (!!!) 1. 更新計算邏輯 (!!!)
+    latest_asset_map = {}
+    
+    # 我們反向遍歷 (從最舊到最新)，以確保 latest_asset_map 儲存的是最新的紀錄
+    for log in reversed(asset_logs):
+        description_key = log.description or f"__asset_type_{log.asset_type.value}__"
+        asset_key = (log.asset_type, description_key)
+        
+        latest_asset_map[asset_key] = log
+
+    # (!!!) 2. 修正篩選條件 (!!!)
+    # 篩選出狀態為 'assigned' (已指派) 或 'returned' (已歸還) 的資產
+    # 這代表公司目前「持有」的所有資產 (無論在庫存或在車上)
+    current_assets = [
+        log for log in latest_asset_map.values() 
+        if log.status in [AssetStatus.assigned, AssetStatus.returned]
+    ]
+    
+    # 重新排序 (依狀態、類型、描述)
+    current_assets.sort(key=lambda x: (
+        x.status.value, # 讓 "assigned" 排在 "returned" 之前
+        x.asset_type.value, 
+        x.description or ""
+    ))
+
+    return templates.TemplateResponse(
+        name="fragments/asset_log_list.html",
+        context={
+            "request": request,
+            "asset_logs": asset_logs,           
+            "current_assets": current_assets, # (!!!) 傳遞更新後的清單 (!!!)
             "vehicle_id": vehicle_id
         }
     )
