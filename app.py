@@ -756,15 +756,23 @@ async def get_maintenance_form(
 ):
     """ 取得保養紀錄的「新增」或「編輯」表單 (Modal) """
     maint = None
-    all_vehicles = None
+    preselected_user_id: Optional[UUID] = None # (!!!) 1. 新增
+    
+    # (!!!) 2. 永遠載入 all_vehicles，修復舊 bug (!!!)
+    all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+
     if maint_id:
+        # 編輯模式
         maint = db.get(Maintenance, maint_id)
         if not maint:
             raise HTTPException(status_code=404, detail="Maintenance record not found")
-        vehicle_id = maint.vehicle_id # 編輯模式下，從紀錄取得 vehicle_id
+        vehicle_id = maint.vehicle_id 
     else:
-        # 新增模式，需要載入所有車輛
-        all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+        # (!!!) 3. 新增模式：如果 vehicle_id 存在，預先抓取 user_id (!!!)
+        if vehicle_id:
+            vehicle = db.get(Vehicle, vehicle_id)
+            if vehicle:
+                preselected_user_id = vehicle.user_id
 
     all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
     all_handlers = db.scalars(
@@ -776,12 +784,12 @@ async def get_maintenance_form(
         context={
             "request": request,
             "maint": maint,
-            # 傳遞預選的 vehicle_id (無論是來自查詢參數還是編輯模式)
             "selected_vehicle_id": vehicle_id, 
             "all_employees": all_employees,
             "all_handlers": all_handlers,
-            "all_vehicles": all_vehicles, # 傳遞所有車輛 (僅限新增模式)
+            "all_vehicles": all_vehicles, 
             "maintenance_categories": list(MaintenanceCategory),
+            "preselected_user_id": preselected_user_id # (!!!) 4. 傳遞到模板 (!!!)
         }
     )
 
@@ -1040,7 +1048,11 @@ async def get_inspection_form(
 ):
     """ 取得檢驗紀錄的「新增」或「編輯」表單 (Modal) """
     insp = None
-    all_vehicles = None
+    preselected_user_id: Optional[UUID] = None # (!!!) 1. 新增
+    
+    # (!!!) 2. 永遠載入 all_vehicles (!!!)
+    all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+
     if insp_id:
         # 編輯模式
         insp = db.get(Inspection, insp_id)
@@ -1048,8 +1060,11 @@ async def get_inspection_form(
             raise HTTPException(status_code=404, detail="Inspection record not found")
         vehicle_id = insp.vehicle_id
     else:
-        # 新增模式
-        all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+        # (!!!) 3. 新增模式：如果 vehicle_id 存在，預先抓取 user_id (!!!)
+        if vehicle_id:
+            vehicle = db.get(Vehicle, vehicle_id)
+            if vehicle:
+                preselected_user_id = vehicle.user_id
 
     all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
     all_handlers = db.scalars(
@@ -1066,6 +1081,7 @@ async def get_inspection_form(
             "all_handlers": all_handlers,
             "all_vehicles": all_vehicles,
             "inspection_kinds": list(InspectionKind),
+            "preselected_user_id": preselected_user_id # (!!!) 4. 傳遞到模板 (!!!)
         }
     )
 
@@ -1312,13 +1328,20 @@ async def get_fee_form(
 ):
     """ 取得費用紀錄的「新增」或「編輯」表單 (Modal) """
     fee = None
-    all_vehicles = None
+    preselected_user_id: Optional[UUID] = None # (!!!) 1. 新增
+
     if fee_id:
         # 編輯模式
         fee = db.get(Fee, fee_id)
         if not fee:
             raise HTTPException(status_code=404, detail="Fee record not found")
         vehicle_id = fee.vehicle_id # 從紀錄取得 vehicle_id
+    else:
+        # (!!!) 2. 新增模式：如果 vehicle_id 存在，預先抓取 user_id (!!!)
+        if vehicle_id:
+            vehicle = db.get(Vehicle, vehicle_id)
+            if vehicle:
+                preselected_user_id = vehicle.user_id
 
     # 費用表單「永遠」需要所有車輛和員工
     all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
@@ -1333,6 +1356,7 @@ async def get_fee_form(
             "all_employees": all_employees,
             "all_vehicles": all_vehicles,
             "fee_types": list(FeeType),
+            "preselected_user_id": preselected_user_id # (!!!) 3. 傳遞到模板 (!!!)
         }
     )
 
@@ -1812,6 +1836,38 @@ async def delete_attachment(
     return Response(
         status_code=200,
         headers={"HX-Trigger": "refreshAttachmentsList"}
+    )
+
+@app.get("/fragments/user-options")
+async def get_user_options(
+    request: Request,
+    vehicle_id: Optional[UUID] = None, # 來自 hx-include
+    db: Session = Depends(get_db)
+):
+    """
+    根據傳入的 vehicle_id，回傳預選了主要使用人的 <option> 列表
+    """
+    preselected_user_id: Optional[UUID] = None
+    
+    # 1. 檢查 vehicle_id 是否有效
+    if vehicle_id:
+        # 2. 查詢該車輛
+        vehicle = db.get(Vehicle, vehicle_id)
+        if vehicle:
+            # 3. 取得該車輛的主要使用人 ID
+            preselected_user_id = vehicle.user_id
+    
+    # 4. 取得所有員工
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    
+    # 5. 渲染「只有選項」的模板
+    return templates.TemplateResponse(
+        name="fragments/_user_select_options.html", # 我們將在下一步建立此檔案
+        context={
+            "request": request,
+            "all_employees": all_employees,
+            "preselected_user_id": preselected_user_id # 傳遞預選 ID
+        }
     )
 
 # --- 健康檢查 ---

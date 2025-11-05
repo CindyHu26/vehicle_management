@@ -1,0 +1,8 @@
+<option value="">-- 無 --</option>
+
+{% for emp in all_employees %}
+  <option value="{{ emp.id }}" 
+    {% if preselected_user_id == emp.id %}selected{% endif %}>
+    {{ emp.name }}
+  </option>
+{% endfor %}

@@ -26,7 +26,14 @@
         <div class="col-span-1">
             <label for="vehicle_id" class="block text-sm font-medium text-gray-700">關聯車輛 (可選)</label>
             <select name="vehicle_id" id="vehicle_id"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    
+                    hx-get="/fragments/user-options"
+                    hx-trigger="change"
+                    hx-target="#user_id" 
+                    hx-swap="innerHTML"
+                    hx-include="this"
+                    >
               <option value="">-- 無 (私車/雜項) --</option>
               {% for v in all_vehicles %}
                 <option value="{{ v.id }}" {% if selected_vehicle_id and selected_vehicle_id == v.id %}selected{% endif %}>
@@ -41,12 +48,16 @@
             <select name="user_id" id="user_id"
                     class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
               <option value="">-- 無 --</option>
+              
               {% for emp in all_employees %}
-                <option value="{{ emp.id }}" {% if (fee and fee.user_id == emp.id) or (not fee and selected_vehicle_id and all_vehicles | selectattr('id', 'equalto', selected_vehicle_id) | map(attribute='user_id') | first == emp.id) %}selected{% endif %}>
+                <option value="{{ emp.id }}" 
+                  {% if (fee and fee.user_id == emp.id) or 
+                        (not fee and preselected_user_id == emp.id) 
+                  %}selected{% endif %}>
                   {{ emp.name }}
                 </option>
               {% endfor %}
-            </select>
+              </select>
         </div>
 
         <hr class="col-span-1 md:col-span-2 my-2">
