@@ -20,37 +20,24 @@
       <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
               <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電話</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">汽車駕照</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">機車駕照</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
               </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
               
               {% for emp in employees %}
-              <tr 
-                class="hover:bg-gray-50 cursor-pointer"
-                hx-get="/employee/{{ emp.id }}/edit"
-                hx-target="#modal-container"
-                hx-swap="beforeend"
-              >
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ emp.name }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ emp.phone or 'N/A' }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {{ "✔️" if emp.has_car_license else "❌" }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {{ "✔️" if emp.has_motorcycle_license else "❌" }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <tr class="hover:bg-gray-50">
+                  
+                  <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                       <button 
                         class="text-blue-600 hover:text-blue-900"
                         hx-get="/employee/{{ emp.id }}/edit"
                         hx-target="#modal-container"
                         hx-swap="beforeend"
-                        hx-on:click.stop
                       >
                         編輯
                       </button>
@@ -60,10 +47,22 @@
                         hx-target="closest tr"
                         hx-swap="outerHTML"
                         hx-confirm="確定要刪除員工 {{ emp.name }} 嗎？"
-                        hx-on:click.stop
                       >
                         刪除
                       </button>
+                  </td>
+                  
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer" hx-get="/employee/{{ emp.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+                    {{ emp.name }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/employee/{{ emp.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+                    {{ emp.phone or 'N/A' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/employee/{{ emp.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+                      {{ "✔️" if emp.has_car_license else "❌" }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/employee/{{ emp.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+                      {{ "✔️" if emp.has_motorcycle_license else "❌" }}
                   </td>
               </tr>
               {% endfor %}

@@ -2,6 +2,7 @@
   <table class="min-w-full divide-y divide-gray-200">
     <thead class="bg-gray-100">
       <tr>
+        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">車輛</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">執行日期</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">類別</th>
@@ -15,7 +16,6 @@
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">維修細節(備註)</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">聯絡事宜(備註-2)</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">表定保養里程</th>
-        <th class="px-3 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>
       </tr>
     </thead>
     <tbody class="bg-white divide-y divide-gray-200">
@@ -28,60 +28,23 @@
       {% endif %} 
 
       {% for record in maintenance_records %}
-      <tr 
-        class="hover:bg-gray-50 text-sm cursor-pointer"
-        hx-get="/maintenance/{{ record.id }}/edit"
-        hx-target="#modal-container"
-        hx-swap="beforeend"
-      >
+      <tr class="hover:bg-gray-50 text-sm">
         
-        <td class="px-3 py-3 whitespace-nowrap font-medium text-blue-600">
-          {{ record.vehicle.plate_no if record.vehicle else 'N/A' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-900">
-          {{ record.performed_on.strftime('%Y-%m-%d') if record.performed_on else 'N/A' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700">
-          {{ maintenance_category_map.get(record.category.value, record.category.value) }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-right">
-          {{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-center">
-          {{ "✔️" if record.is_reconciled else "❌" }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-right">
-          {{ "{:,.0f} km".format(record.odometer_km) if record.odometer_km else 'N/A' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700">
-          {{ record.user.name if record.user else 'N/A' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700">
-          {{ record.handler.name if record.handler else 'N/A' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700">
-          {{ record.vendor or 'N/A' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700">
-          {{ record.return_date.strftime('%Y-%m-%d') if record.return_date else 'N/A' }}
-        </td>
-        <td class="px-3 py-3 text-gray-700 truncate" style="max-width: 150px;">
-          {{ record.notes or '' }}
-        </td>
-        <td class="px-3 py-3 text-gray-700 truncate" style="max-width: 150px;">
-          {{ record.handler_notes or '' }}
-        </td>
-        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-right">
-          {{ "{:,.0f} km".format(record.service_target_km) if record.service_target_km else 'N/A' }}
-        </td>
-        
-        <td class="px-3 py-3 whitespace-nowrap text-right font-medium">
+        <td class="px-3 py-3 whitespace-nowrap text-left font-medium">
           <button
-            class="text-blue-600 hover:text-blue-900"
+            class="text-green-600 hover:text-green-900"
+            hx-get="/attachments/manage/maintenance/{{ record.id }}"
+            hx-target="#modal-container"
+            hx-swap="beforeend"
+            title="附件"
+          >
+            附件
+          </button>
+          <button
+            class="text-blue-600 hover:text-blue-900 ml-2"
             hx-get="/maintenance/{{ record.id }}/edit"
             hx-target="#modal-container"
             hx-swap="beforeend"
-            hx-on:click.stop
           >
             編輯
           </button>
@@ -91,10 +54,49 @@
             hx-target="closest tr"
             hx-swap="outerHTML"
             hx-confirm="確定要刪除這筆保養紀錄嗎？"
-            hx-on:click.stop
           >
             刪除
           </button>
+        </td>
+
+        <td class="px-3 py-3 whitespace-nowrap font-medium text-blue-600 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.vehicle.plate_no if record.vehicle else 'N/A' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-900 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.performed_on.strftime('%Y-%m-%d') if record.performed_on else 'N/A' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ maintenance_category_map.get(record.category.value, record.category.value) }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-right cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-center cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ "✔️" if record.is_reconciled else "❌" }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-right cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ "{:,.0f} km".format(record.odometer_km) if record.odometer_km else 'N/A' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.user.name if record.user else 'N/A' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.handler.name if record.handler else 'N/A' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.vendor or 'N/A' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.return_date.strftime('%Y-%m-%d') if record.return_date else 'N/A' }}
+        </td>
+        <td class="px-3 py-3 text-gray-700 truncate cursor-pointer" style="max-width: 150px;" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.notes or '' }}
+        </td>
+        <td class="px-3 py-3 text-gray-700 truncate cursor-pointer" style="max-width: 150px;" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ record.handler_notes or '' }}
+        </td>
+        <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-right cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          {{ "{:,.0f} km".format(record.service_target_km) if record.service_target_km else 'N/A' }}
         </td>
       </tr>
       {% endfor %}

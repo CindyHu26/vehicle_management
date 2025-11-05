@@ -1,13 +1,15 @@
 # app.py
 import os
+import shutil
 from pathlib import Path
-from uuid import UUID 
+from uuid import UUID, uuid4
 from typing import Optional
 from datetime import date
 from decimal import Decimal
 
 from fastapi import (
-    FastAPI, Request, Depends, Form, HTTPException, Response
+    FastAPI, Request, Depends, Form, HTTPException, Response,
+    File, UploadFile
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates 
@@ -19,7 +21,8 @@ from models import (
     VehicleType, VehicleStatus,
     Maintenance, MaintenanceCategory, Fee, FeeType,
     Inspection, InspectionKind,
-    VehicleAssetLog, AssetType, AssetStatus, Disposal
+    VehicleAssetLog, AssetType, AssetStatus, Disposal,
+    Attachment, AttachmentEntity
 )
 from config import settings, UPLOAD_PATH
 
@@ -270,7 +273,6 @@ async def delete_vehicle(
     return Response(status_code=200)
 
 # --- 員工 CRUD ---
-
 @app.get("/employee/new")
 @app.get("/employee/{employee_id}/edit")
 async def get_employee_form(
@@ -1158,6 +1160,130 @@ async def delete_disposal(
         }
     )
 
+# --- 附件管理 CRUD ---
+@app.get("/attachments/manage/{entity_type}/{entity_id}")
+async def get_attachments_manager(
+    request: Request,
+    entity_type: AttachmentEntity,
+    entity_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 取得附件管理器的 Modal 彈窗 (包含列表和上傳表單) """
+
+    # 查詢關聯的附件
+    stmt = (
+        select(Attachment)
+        .where(
+            (Attachment.entity_type == entity_type) &
+            (Attachment.entity_id == entity_id)
+        )
+        .order_by(Attachment.uploaded_at.desc())
+    )
+    attachments = db.scalars(stmt).all()
+
+    return templates.TemplateResponse(
+        name="fragments/attachments_manager.html",
+        context={
+            "request": request,
+            "attachments": attachments,
+            "entity_type": entity_type,
+            "entity_id": entity_id
+        }
+    )
+
+@app.post("/attachment/upload")
+async def upload_attachment(
+    request: Request,
+    db: Session = Depends(get_db),
+    entity_type: AttachmentEntity = Form(...),
+    entity_id: UUID = Form(...),
+    description: Optional[str] = Form(None),
+    file: UploadFile = File(...)
+):
+    """ 處理檔案上傳 """
+
+    if not file:
+        raise HTTPException(status_code=400, detail="沒有提供檔案")
+
+    # 產生一個安全的檔案名稱
+    # 格式: [entity_id]_[uuid].[extension]
+    ext = Path(file.filename).suffix
+    safe_filename = f"{entity_id}_{uuid4()}{ext}"
+    file_path = UPLOAD_PATH / safe_filename
+
+    # 儲存實體檔案
+    try:
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"無法儲存檔案: {e}")
+    finally:
+        file.file.close()
+
+    # 建立資料庫紀錄
+    new_attachment = Attachment(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        file_name=file.filename, # 儲存原始檔名
+        file_path=f"/uploads/{safe_filename}", # 儲存相對 URL 路徑
+        description=description
+    )
+    db.add(new_attachment)
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # (可選) 嘗試刪除已上傳的實體檔案
+        if file_path.exists():
+            file_path.unlink()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # 觸發附件列表刷新
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshAttachmentsList"}
+    )
+
+@app.delete("/attachment/{attachment_id}/delete")
+async def delete_attachment(
+    attachment_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 刪除一筆附件 (包含實體檔案) """
+
+    att = db.get(Attachment, attachment_id)
+    if not att:
+        return Response(status_code=200) # 已被刪除
+
+    # 1. 刪除實體檔案
+    try:
+        # 從 /uploads/filename.ext 取得 filename.ext
+        file_name_on_disk = Path(att.file_path).name
+        file_path = UPLOAD_PATH / file_name_on_disk
+
+        if file_path.exists():
+            file_path.unlink()
+        else:
+            print(f"警告：找不到要刪除的檔案 {file_path}")
+
+    except Exception as e:
+        print(f"刪除實體檔案失敗: {e}")
+        # 注意：我們不中斷，即使檔案刪除失敗，還是要刪除資料庫紀錄
+
+    # 2. 刪除資料庫紀錄
+    try:
+        db.delete(att)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"刪除資料庫紀錄失敗: {e}")
+
+    # 觸發附件列表刷新
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshAttachmentsList"}
+    )
 
 # --- 健康檢查 ---
 @app.get("/health")

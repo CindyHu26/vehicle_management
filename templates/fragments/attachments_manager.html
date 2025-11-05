@@ -1,0 +1,98 @@
+<div 
+  class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50"
+  hx-on:click="if (event.target === this) this.remove()"
+>
+  <div 
+    class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+    hx-get="/attachments/manage/{{ entity_type }}/{{ entity_id }}"
+    hx-trigger="refreshAttachmentsList from:body"
+    hx-target="this"
+    hx-swap="outerHTML"
+  >
+    
+    <h2 class="text-2xl font-semibold mb-4">附件管理</h2>
+
+    <div class="mb-6">
+      <h3 class="text-lg font-medium text-gray-700 mb-2">已上傳附件</h3>
+      {% if not attachments %}
+        <p class="text-sm text-gray-500">尚無附件</p>
+      {% else %}
+        <ul class="divide-y divide-gray-200 border rounded-md">
+          {% for att in attachments %}
+          <li class="px-4 py-3 flex items-center justify-between space-x-4">
+            <div class="flex-1 min-w-0">
+              <a 
+                href="{{ att.file_path }}" 
+                target="_blank" 
+                class="text-sm font-medium text-blue-600 hover:text-blue-800 truncate"
+                title="點擊開啟：{{ att.file_name }}"
+              >
+                {{ att.file_name }}
+              </a>
+              <p class="text-sm text-gray-500 truncate">
+                {{ att.description or 'N/A' }}
+              </p>
+              <p class="text-xs text-gray-400">
+                {{ att.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
+              </p>
+            </div>
+            <button
+              class="text-red-500 hover:text-red-700 font-medium"
+              hx-delete="/attachment/{{ att.id }}/delete"
+              hx-confirm="確定要刪除這個附件嗎？\n檔案：{{ att.file_name }}"
+            >
+              刪除
+            </button>
+          </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <div>
+      <h3 class="text-lg font-medium text-gray-700 mb-2">上傳新附件</h3>
+      
+      <form
+        hx-post="/attachment/upload"
+        hx-encoding="multipart/form-data"
+        hx-on:htmx:afterOnLoad="this.reset()" 
+        class="space-y-4 p-4 border rounded-md bg-gray-50"
+      >
+        <input type="hidden" name="entity_type" value="{{ entity_type }}">
+        <input type="hidden" name="entity_id" value="{{ entity_id }}">
+        
+        <div>
+          <label for="file" class="block text-sm font-medium text-gray-700">檔案 (必填)</label>
+          <input type="file" name="file" id="file" required 
+                 class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50
+                        file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:font-semibold
+                        file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        </div>
+        
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700">檔案說明</label>
+          <input type="text" name="description" id="description"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="flex justify-end">
+          <button type="submit"
+                  class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+          >
+            上傳
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="mt-6 flex justify-end">
+        <button type="button" 
+                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+                hx-on:click="this.closest('.fixed').remove()"
+        >
+          關閉
+        </button>
+    </div>
+
+  </div>
+</div>
