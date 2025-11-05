@@ -9,9 +9,7 @@
     <h3 class="text-xl font-semibold text-gray-700">保養維修紀錄</h3>
     <button
       class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
-
       hx-get="/maintenance/new?vehicle_id={{ vehicle_id }}"
-
       hx-target="#modal-container"
       hx-swap="beforeend"
     >
@@ -43,7 +41,12 @@
         {% endif %} 
         
         {% for record in maintenance_records %}
-        <tr class="hover:bg-gray-50">
+        <tr 
+          class="hover:bg-gray-50 cursor-pointer"
+          hx-get="/maintenance/{{ record.id }}/edit"
+          hx-target="#modal-container"
+          hx-swap="beforeend"
+        >
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">{{ record.performed_on.strftime('%Y-%m-%d') if record.performed_on else 'N/A' }}</td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
             {{ maintenance_category_map.get(record.category.value, record.category.value) }}
@@ -53,12 +56,14 @@
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ "{:,.0f} km".format(record.odometer_km) if record.odometer_km else 'N/A' }}</td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ record.user.name if record.user else 'N/A' }}</td>
           <td class="px-4 py-4 text-sm text-gray-700 truncate" style="max-width: 200px;">{{ record.notes or '' }}</td>
+          
           <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button
               class="text-blue-600 hover:text-blue-900"
               hx-get="/maintenance/{{ record.id }}/edit"
               hx-target="#modal-container"
               hx-swap="beforeend"
+              hx-on:click.stop
             >
               編輯
             </button>
@@ -68,6 +73,7 @@
               hx-target="closest tr"
               hx-swap="outerHTML"
               hx-confirm="確定要刪除這筆保養紀錄嗎？"
+              hx-on:click.stop
             >
               刪除
             </button>

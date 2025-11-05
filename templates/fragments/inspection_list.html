@@ -38,9 +38,14 @@
             </td>
           </tr>
         {% endif %} 
-
+        
         {% for record in inspection_records %}
-        <tr class="hover:bg-gray-50">
+        <tr 
+          class="hover:bg-gray-50 cursor-pointer"
+          hx-get="/inspection/{{ record.id }}/edit"
+          hx-target="#modal-container"
+          hx-swap="beforeend"
+        >
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">{{ record.inspected_on.strftime('%Y-%m-%d') if record.inspected_on else 'N/A' }}</td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
             {{ inspection_kind_map.get(record.kind.value, record.kind.value) }}
@@ -49,12 +54,14 @@
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}</td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ record.handler.name if record.handler else 'N/A' }}</td>
           <td class="px-4 py-4 text-sm text-gray-700 truncate" style="max-width: 200px;">{{ record.notes or '' }}</td>
+          
           <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button
               class="text-blue-600 hover:text-blue-900"
               hx-get="/inspection/{{ record.id }}/edit"
               hx-target="#modal-container"
               hx-swap="beforeend"
+              hx-on:click.stop
             >
               編輯
             </button>
@@ -64,6 +71,7 @@
               hx-target="closest tr"
               hx-swap="outerHTML"
               hx-confirm="確定要刪除這筆檢驗紀錄嗎？"
+              hx-on:click.stop
             >
               刪除
             </button>

@@ -16,7 +16,8 @@
       {% if maint %}
         hx-post="/maintenance/{{ maint.id }}/edit"
       {% else %}
-        hx-post="/maintenance/new" {% endif %}
+        hx-post="/maintenance/new"
+      {% endif %}
       
       hx-on="htmx:afterOnLoad: this.closest('.fixed').remove()"
     >
@@ -87,6 +88,12 @@
         </div>
 
         <div>
+          <label for="service_target_km" class="block text-sm font-medium text-gray-700">表定保養里程 (km)</label>
+          <input type="number" name="service_target_km" id="service_target_km" value="{{ maint.service_target_km if maint else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
           <label for="odometer_km" class="block text-sm font-medium text-gray-700">當時實際里程 (km)</label>
           <input type="number" name="odometer_km" id="odometer_km" value="{{ maint.odometer_km if maint else '' }}"
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -105,7 +112,7 @@
                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
 
-        <div class="flex items-center pt-6">
+        <div class="flex items-center pt-6 col-span-1 md:col-span-2">
             <input id="is_reconciled" name="is_reconciled" type="checkbox" value="True" 
                    {% if maint and maint.is_reconciled %}checked{% endif %}
                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">

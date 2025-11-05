@@ -462,6 +462,7 @@ async def create_or_update_maintenance(
     handler_id: Optional[str] = Form(None),
     vendor: Optional[str] = Form(None),
     odometer_km: Optional[int] = Form(None),
+    service_target_km: Optional[int] = Form(None),
     amount: Optional[Decimal] = Form(None),
     is_reconciled: bool = Form(False),
     notes: Optional[str] = Form(None),
@@ -494,6 +495,7 @@ async def create_or_update_maintenance(
     maint.handler_id = handler_uuid
     maint.vendor = vendor
     maint.odometer_km = odometer_km
+    maint.service_target_km = service_target_km
     maint.amount = amount
     maint.is_reconciled = is_reconciled
     maint.notes = notes
