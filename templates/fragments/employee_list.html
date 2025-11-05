@@ -4,28 +4,17 @@
   hx-target="this" 
   hx-swap="outerHTML"
 >
-  <div class="mb-4 flex justify-between items-center">
-      <h2 class="text-2xl font-semibold text-gray-700">員工列表</h2>
-      <button 
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
-        hx-get="/employee/new"
-        hx-target="#modal-container"
-        hx-swap="beforeend"
-      >
-          + 新增員工
-      </button>
-  </div>
-
   <div class="bg-white shadow-md rounded-lg overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
-              <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電話</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">汽車駕照</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">機車駕照</th>
-              </tr>
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電話</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">汽車駕照</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">機車駕照</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">經手人</th>
+            </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
               
@@ -63,6 +52,9 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/employee/{{ emp.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
                       {{ "✔️" if emp.has_motorcycle_license else "❌" }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/employee/{{ emp.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+                    {{ "✔️" if emp.is_handler else "❌" }}
                   </td>
               </tr>
               {% endfor %}

@@ -1,0 +1,76 @@
+<div>
+  <div class="mb-4 flex justify-between items-center">
+    <h2 class="text-3xl font-bold text-gray-800">
+      員工管理
+    </h2>
+    <button 
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
+      hx-get="/employee/new"
+      hx-target="#modal-container"
+      hx-swap="beforeend"
+    >
+      + 新增員工
+    </button>
+  </div>
+  
+  <form 
+    class="mb-4 p-4 bg-white rounded-lg shadow-sm"
+    hx-get="/employees-list"
+    hx-target="#employee-list-container"
+    hx-swap="innerHTML"
+    hx-trigger="change" 
+  >
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+      <div>
+        <label for="filter_has_car_license" class="block text-sm font-medium text-gray-700">汽車駕照</label>
+        <select name="filter_has_car_license" id="filter_has_car_license"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 全部 --</option>
+          <option value="yes" {% if query_params.get('filter_has_car_license') == 'yes' %}selected{% endif %}>是</option>
+          <option value="no" {% if query_params.get('filter_has_car_license') == 'no' %}selected{% endif %}>否</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="filter_has_motorcycle_license" class="block text-sm font-medium text-gray-700">機車駕照</label>
+        <select name="filter_has_motorcycle_license" id="filter_has_motorcycle_license"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 全部 --</option>
+          <option value="yes" {% if query_params.get('filter_has_motorcycle_license') == 'yes' %}selected{% endif %}>是</option>
+          <option value="no" {% if query_params.get('filter_has_motorcycle_license') == 'no' %}selected{% endif %}>否</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="filter_is_handler" class="block text-sm font-medium text-gray-700">經手人</label>
+        <select name="filter_is_handler" id="filter_is_handler"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 全部 --</option>
+          <option value="yes" {% if query_params.get('filter_is_handler') == 'yes' %}selected{% endif %}>是</option>
+          <option value="no" {% if query_params.get('filter_is_handler') == 'no' %}selected{% endif %}>否</option>
+        </select>
+      </div>
+
+      <div class="flex items-end">
+        <a href="#" 
+           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 w-full text-center"
+           hx-get="/employee-management"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+        >
+          重設
+        </a>
+      </div>
+    </div>
+  </form>
+
+  <div 
+    id="employee-list-container"
+    hx-get="/employees-list"
+    hx-trigger="load, refreshEmployeeList from:body"
+    hx-swap="innerHTML"
+  >
+    <p class="p-6 text-gray-500">正在載入員工列表...</p>
+  </div>
+</div>

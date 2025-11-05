@@ -215,21 +215,6 @@ async def get_vehicles_list(
         }
     )
 
-# --- 列表 API (員工) ---
-@app.get("/employees-list")
-async def get_employees_list(request: Request, db: Session = Depends(get_db)):
-    stmt = select(Employee).order_by(Employee.name)
-    employees = db.scalars(stmt).all()
-    
-    return templates.TemplateResponse(
-        name="fragments/employee_list.html",
-        context={
-            "request": request,
-            "employees": employees
-        }
-    )
-
-
 # --- 車輛 CRUD ---
 @app.get("/vehicle/new")
 @app.get("/vehicle/{vehicle_id}/edit")
@@ -329,6 +314,69 @@ async def delete_vehicle(
         raise HTTPException(status_code=400, detail=f"刪除失敗: {e}")
     
     return Response(status_code=200)
+
+# 「員工管理」的主頁面路由
+@app.get("/employee-management")
+async def get_employee_management_page(
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    """
+    渲染「員工管理」的主頁面，包含篩選器。
+    """
+    return templates.TemplateResponse(
+        name="pages/employee_management.html", # 我們將在步驟 3 建立這個新檔案
+        context={
+            "request": request,
+            "query_params": request.query_params # 傳遞查詢參數
+        }
+    )
+
+# --- 列表 API (員工) ---
+@app.get("/employees-list")
+async def get_employees_list(
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    # 2. 修改此函式以支援篩選
+    query_params = request.query_params
+
+    # 1. 建立基礎查詢
+    stmt = select(Employee)
+    
+    # 2. 處理篩選
+    filter_has_car_license = query_params.get("filter_has_car_license")
+    filter_has_motorcycle_license = query_params.get("filter_has_motorcycle_license")
+    filter_is_handler = query_params.get("filter_is_handler")
+
+    if filter_has_car_license == "yes":
+        stmt = stmt.where(Employee.has_car_license == True)
+    elif filter_has_car_license == "no":
+        stmt = stmt.where(Employee.has_car_license == False)
+
+    if filter_has_motorcycle_license == "yes":
+        stmt = stmt.where(Employee.has_motorcycle_license == True)
+    elif filter_has_motorcycle_license == "no":
+        stmt = stmt.where(Employee.has_motorcycle_license == False)
+
+    if filter_is_handler == "yes":
+        stmt = stmt.where(Employee.is_handler == True)
+    elif filter_is_handler == "no":
+        stmt = stmt.where(Employee.is_handler == False)
+
+    # 3. 預設排序
+    stmt = stmt.order_by(Employee.name)
+    
+    employees = db.scalars(stmt).all()
+    
+    return templates.TemplateResponse(
+        name="fragments/employee_list.html",
+        context={
+            "request": request,
+            "employees": employees,
+            "query_params": query_params # 傳遞篩選參數
+        }
+    )
 
 # --- 員工 CRUD ---
 @app.get("/employee/new")

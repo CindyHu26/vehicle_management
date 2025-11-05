@@ -4,19 +4,6 @@
   hx-target="this" 
   hx-swap="outerHTML"
 >
-  <div class="mb-4 flex justify-between items-center">
-      <h2 class="text-2xl font-semibold text-gray-700">車輛列表</h2>
-      
-      <button 
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
-        hx-get="/vehicle/new"
-        hx-target="#modal-container"
-        hx-swap="beforeend"
-      >
-          + 新增車輛
-      </button>
-  </div>
-
   <div class="bg-white shadow-md rounded-lg overflow-hidden">
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
