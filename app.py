@@ -134,6 +134,33 @@ async def get_vehicle_management_page(
         }
     )
 
+@app.get("/vehicle/new")
+@app.get("/vehicle/{vehicle_id}/edit")
+async def get_vehicle_form(
+    request: Request, 
+    vehicle_id: Optional[UUID] = None, 
+    db: Session = Depends(get_db)
+):
+    vehicle = None
+    if vehicle_id:
+        vehicle = db.get(Vehicle, vehicle_id)
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    
+    return templates.TemplateResponse(
+        name="fragments/vehicle_form.html",
+        context={
+            "request": request,
+            "vehicle": vehicle, 
+            "all_employees": all_employees,
+            "vehicle_types": list(VehicleType), 
+            "vehicle_statuses": list(VehicleStatus), 
+        }
+    )
+
+
 @app.get("/vehicle/{vehicle_id}")
 async def get_vehicle_detail_page(
     request: Request, 
@@ -216,32 +243,6 @@ async def get_vehicles_list(
     )
 
 # --- 車輛 CRUD ---
-@app.get("/vehicle/new")
-@app.get("/vehicle/{vehicle_id}/edit")
-async def get_vehicle_form(
-    request: Request, 
-    vehicle_id: Optional[UUID] = None, 
-    db: Session = Depends(get_db)
-):
-    vehicle = None
-    if vehicle_id:
-        vehicle = db.get(Vehicle, vehicle_id)
-        if not vehicle:
-            raise HTTPException(status_code=404, detail="Vehicle not found")
-
-    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
-    
-    return templates.TemplateResponse(
-        name="fragments/vehicle_form.html",
-        context={
-            "request": request,
-            "vehicle": vehicle, 
-            "all_employees": all_employees,
-            "vehicle_types": list(VehicleType), 
-            "vehicle_statuses": list(VehicleStatus), 
-        }
-    )
-
 @app.post("/vehicle/new")
 @app.post("/vehicle/{vehicle_id}/edit")
 async def create_or_update_vehicle(

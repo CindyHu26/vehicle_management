@@ -1,137 +1,130 @@
-<div 
-  hx-trigger="refreshVehicleList from:body" 
-  hx-get="/vehicles-list" 
-  hx-target="this" 
-  hx-swap="outerHTML"
->
-  <div class="bg-white shadow-md rounded-lg overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                
-                <th 
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  hx-get="/vehicles-list"
-                  hx-vals='{
-                    "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
-                    "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
-                    "filter_status": "{{ query_params.get("filter_status", "") }}",
-                    "sort_by": "plate_no",
-                    "sort_order": "{% if current_sort_by == "plate_no" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
-                  }'
-                  hx-target="#vehicle-list-container" hx-swap="innerHTML"
-                >
-                  車牌號碼
-                  {% if current_sort_by == "plate_no" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
-                </th>
-                
-                <th 
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  hx-get="/vehicles-list"
-                  hx-vals='{
-                    "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
-                    "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
-                    "filter_status": "{{ query_params.get("filter_status", "") }}",
-                    "sort_by": "user_id",
-                    "sort_order": "{% if current_sort_by == "user_id" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
-                  }'
-                  hx-target="#vehicle-list-container" hx-swap="innerHTML"
-                >
-                  主要使用人
-                  {% if current_sort_by == "user_id" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
-                </th>
-
-                <th 
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  hx-get="/vehicles-list"
-                  hx-vals='{
-                    "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
-                    "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
-                    "filter_status": "{{ query_params.get("filter_status", "") }}",
-                    "sort_by": "vehicle_type",
-                    "sort_order": "{% if current_sort_by == "vehicle_type" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
-                  }'
-                  hx-target="#vehicle-list-container" hx-swap="innerHTML"
-                >
-                  車輛類型
-                  {% if current_sort_by == "vehicle_type" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
-                </th>
-                
-                <th 
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  hx-get="/vehicles-list"
-                  hx-vals='{
-                    "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
-                    "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
-                    "filter_status": "{{ query_params.get("filter_status", "") }}",
-                    "sort_by": "status",
-                    "sort_order": "{% if current_sort_by == "status" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
-                  }'
-                  hx-target="#vehicle-list-container" hx-swap="innerHTML"
-                >
-                  狀態
-                  {% if current_sort_by == "status" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
-                </th>
-                
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">型號</th>
-                
-                </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200" id="vehicle-table-body">
-            
-            {% for vehicle in vehicles %}
-              <tr 
-                  class="hover:bg-gray-100 cursor-pointer"
-                  hx-get="/vehicle/{{ vehicle.id }}"
-                  hx-target="#main-content"
-                  hx-swap="innerHTML"
-                  hx-trigger="click"
+<div class="bg-white shadow-md rounded-lg overflow-hidden">
+  <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+          <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+              
+              <th 
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                hx-get="/vehicles-list"
+                hx-vals='{
+                  "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+                  "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
+                  "filter_status": "{{ query_params.get("filter_status", "") }}",
+                  "sort_by": "plate_no",
+                  "sort_order": "{% if current_sort_by == "plate_no" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+                }'
+                hx-target="#vehicle-list-container" hx-swap="innerHTML"
               >
-                <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                    <button 
-                      class="text-blue-600 hover:text-blue-900"
-                      hx-get="/vehicle/{{ vehicle.id }}/edit"
-                      hx-target="#modal-container"
-                      hx-swap="beforeend"
-                      hx-on:click.stop
-                    >
-                      編輯
-                    </button>
-                    
-                    <button 
-                      class="text-red-600 hover:text-red-900 ml-4"
-                      hx-delete="/vehicle/{{ vehicle.id }}/delete"
-                      hx-target="closest tr"  
-                      hx-swap="outerHTML"     
-                      hx-confirm="確定要刪除車牌 {{ vehicle.plate_no }} 嗎？"
-                      hx-on:click.stop
-                    >
-                      刪除
-                    </button>
-                </td>
+                車牌號碼
+                {% if current_sort_by == "plate_no" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+              </th>
+              
+              <th 
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                hx-get="/vehicles-list"
+                hx-vals='{
+                  "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+                  "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
+                  "filter_status": "{{ query_params.get("filter_status", "") }}",
+                  "sort_by": "user_id",
+                  "sort_order": "{% if current_sort_by == "user_id" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+                }'
+                hx-target="#vehicle-list-container" hx-swap="innerHTML"
+              >
+                主要使用人
+                {% if current_sort_by == "user_id" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+              </th>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ vehicle.plate_no }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {{ vehicle.user.name if vehicle.user else '' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {{ vehicle_type_map.get(vehicle.vehicle_type.value, vehicle.vehicle_type.value) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    {% if vehicle.status.value == 'active' %}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">啟用中</span>
-                    {% elif vehicle.status.value == 'retired' %}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">已報廢</span>
-                    {% else %}
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ vehicle.status.value }}</span>
-                    {% endif %}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ vehicle.model or '' }}</td>
-                
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-  </div>
+              <th 
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                hx-get="/vehicles-list"
+                hx-vals='{
+                  "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+                  "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
+                  "filter_status": "{{ query_params.get("filter_status", "") }}",
+                  "sort_by": "vehicle_type",
+                  "sort_order": "{% if current_sort_by == "vehicle_type" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+                }'
+                hx-target="#vehicle-list-container" hx-swap="innerHTML"
+              >
+                車輛類型
+                {% if current_sort_by == "vehicle_type" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+              </th>
+              
+              <th 
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                hx-get="/vehicles-list"
+                hx-vals='{
+                  "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+                  "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
+                  "filter_status": "{{ query_params.get("filter_status", "") }}",
+                  "sort_by": "status",
+                  "sort_order": "{% if current_sort_by == "status" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+                }'
+                hx-target="#vehicle-list-container" hx-swap="innerHTML"
+              >
+                狀態
+                {% if current_sort_by == "status" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+              </th>
+              
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">型號</th>
+              
+              </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200" id="vehicle-table-body">
+          
+          {% for vehicle in vehicles %}
+            <tr 
+                class="hover:bg-gray-100 cursor-pointer"
+                hx-get="/vehicle/{{ vehicle.id }}"
+                hx-target="#main-content"
+                hx-swap="innerHTML"
+                hx-trigger="click"
+            >
+              <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                  <button 
+                    class="text-blue-600 hover:text-blue-900"
+                    hx-get="/vehicle/{{ vehicle.id }}/edit"
+                    hx-target="#modal-container"
+                    hx-swap="beforeend"
+                    hx-on:click.stop
+                  >
+                    編輯
+                  </button>
+                  
+                  <button 
+                    class="text-red-600 hover:text-red-900 ml-4"
+                    hx-delete="/vehicle/{{ vehicle.id }}/delete"
+                    hx-target="closest tr"  
+                    hx-swap="outerHTML"     
+                    hx-confirm="確定要刪除車牌 {{ vehicle.plate_no }} 嗎？"
+                    hx-on:click.stop
+                  >
+                    刪除
+                  </button>
+              </td>
+
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ vehicle.plate_no }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {{ vehicle.user.name if vehicle.user else '' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  {{ vehicle_type_map.get(vehicle.vehicle_type.value, vehicle.vehicle_type.value) }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  {% if vehicle.status.value == 'active' %}
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">啟用中</span>
+                  {% elif vehicle.status.value == 'retired' %}
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">已報廢</span>
+                  {% else %}
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ vehicle.status.value }}</span>
+                  {% endif %}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ vehicle.model or '' }}</td>
+              
+              </tr>
+          {% endfor %}
+      </tbody>
+  </table>
 </div>
