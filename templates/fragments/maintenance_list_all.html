@@ -28,7 +28,12 @@
       {% endif %} 
 
       {% for record in maintenance_records %}
-      <tr class="hover:bg-gray-50 text-sm">
+      <tr 
+        class="hover:bg-gray-50 text-sm cursor-pointer"
+        hx-get="/maintenance/{{ record.id }}/edit"
+        hx-target="#modal-container"
+        hx-swap="beforeend"
+      >
         
         <td class="px-3 py-3 whitespace-nowrap font-medium text-blue-600">
           {{ record.vehicle.plate_no if record.vehicle else 'N/A' }}
@@ -76,6 +81,7 @@
             hx-get="/maintenance/{{ record.id }}/edit"
             hx-target="#modal-container"
             hx-swap="beforeend"
+            hx-on:click.stop
           >
             編輯
           </button>
@@ -85,6 +91,7 @@
             hx-target="closest tr"
             hx-swap="outerHTML"
             hx-confirm="確定要刪除這筆保養紀錄嗎？"
+            hx-on:click.stop
           >
             刪除
           </button>

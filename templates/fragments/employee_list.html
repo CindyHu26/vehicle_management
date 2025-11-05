@@ -30,7 +30,12 @@
           <tbody class="bg-white divide-y divide-gray-200">
               
               {% for emp in employees %}
-              <tr class="hover:bg-gray-50">
+              <tr 
+                class="hover:bg-gray-50 cursor-pointer"
+                hx-get="/employee/{{ emp.id }}/edit"
+                hx-target="#modal-container"
+                hx-swap="beforeend"
+              >
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ emp.name }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ emp.phone or 'N/A' }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
@@ -45,6 +50,7 @@
                         hx-get="/employee/{{ emp.id }}/edit"
                         hx-target="#modal-container"
                         hx-swap="beforeend"
+                        hx-on:click.stop
                       >
                         編輯
                       </button>
@@ -54,6 +60,7 @@
                         hx-target="closest tr"
                         hx-swap="outerHTML"
                         hx-confirm="確定要刪除員工 {{ emp.name }} 嗎？"
+                        hx-on:click.stop
                       >
                         刪除
                       </button>
