@@ -8,9 +8,21 @@
   hx-swap="outerHTML"
 >
   <div 
-    class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+    class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative"
     >
     
+    <div class="absolute top-0 right-0 pt-4 pr-4">
+      <button 
+        type="button"
+        class="text-gray-400 hover:text-gray-600 transition duration-150 ease-in-out"
+        onclick="this.closest('.fixed').remove()"
+        aria-label="Close"
+      >
+        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
     <h2 class="text-2xl font-semibold mb-4">附件管理</h2>
 
     <div class="mb-6">
@@ -83,6 +95,9 @@
         hx-post="/attachment/upload"
         hx-encoding="multipart/form-data"
         hx-on:htmx:afterOnLoad="this.reset()" 
+        
+        hx-swap="none"
+        
         class="space-y-4 p-4 border rounded-md bg-gray-50"
       >
         <input type="hidden" name="entity_type" value="{{ entity_type.value }}">
