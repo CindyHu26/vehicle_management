@@ -13,6 +13,70 @@
     </button>
   </div>
 
+  <form 
+    class="mb-4 p-4 bg-white rounded-lg shadow-sm"
+    hx-get="/inspection-list-all"
+    hx-target="#inspection-list-container"
+    hx-swap="innerHTML"
+    hx-trigger="change" 
+  >
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      <div>
+        <label for="filter_vehicle_id" class="block text-sm font-medium text-gray-700">車輛</label>
+        <select name="filter_vehicle_id" id="filter_vehicle_id"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有車輛 --</option>
+          {% for v in all_vehicles %}
+            <option value="{{ v.id }}" {% if query_params.get('filter_vehicle_id') == v.id|string %}selected{% endif %}>
+              {{ v.plate_no }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label for="filter_notify_start" class="block text-sm font-medium text-gray-700">通知日期 (起)</label>
+          <input type="date" name="filter_notify_start" id="filter_notify_start"
+                 value="{{ query_params.get('filter_notify_start', '') }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label for="filter_notify_end" class="block text-sm font-medium text-gray-700">通知日期 (迄)</label>
+          <input type="date" name="filter_notify_end" id="filter_notify_end"
+                 value="{{ query_params.get('filter_notify_end', '') }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label for="filter_deadline_start" class="block text-sm font-medium text-gray-700">期限 (起)</label>
+          <input type="date" name="filter_deadline_start" id="filter_deadline_start"
+                 value="{{ query_params.get('filter_deadline_start', '') }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+          <label for="filter_deadline_end" class="block text-sm font-medium text-gray-700">期限 (迄)</label>
+          <input type="date" name="filter_deadline_end" id="filter_deadline_end"
+                 value="{{ query_params.get('filter_deadline_end', '') }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+
+    </div>
+    <div class="mt-4 flex justify-end">
+        <a href="#" 
+           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-center"
+           hx-get="/inspection-management"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+        >
+          重設
+        </a>
+    </div>
+  </form>
   <div 
     id="inspection-list-container"
     hx-get="/inspection-list-all"

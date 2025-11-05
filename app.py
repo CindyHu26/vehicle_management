@@ -729,13 +729,23 @@ async def delete_maintenance(
     )
 
 # --- 檢驗紀錄 CRUD ---
-
 @app.get("/inspection-management")
-async def get_inspection_page(request: Request):
+async def get_inspection_page(
+    request: Request,
+    db: Session = Depends(get_db) # (!!!) 1. 加上 Depends(get_db) (!!!)
+):
     """ 渲染「檢驗管理 (全列表)」的主頁面 """
+    
+    # (!!!) 2. 查詢篩選器所需的資料 (!!!)
+    all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+    
     return templates.TemplateResponse(
         name="pages/inspection_management.html",
-        context={"request": request}
+        context={
+            "request": request,
+            "all_vehicles": all_vehicles, # (!!!) 3. 傳遞車輛資料 (!!!)
+            "query_params": request.query_params # (!!!) 4. 傳遞查詢參數 (!!!)
+        }
     )
 
 @app.get("/inspection-list-all")
@@ -744,6 +754,11 @@ async def get_inspection_list_all(
     db: Session = Depends(get_db)
 ):
     """ 取得「所有」車輛的檢驗列表 (片段) """
+    
+    # (!!!) 1. 取得查詢參數 (!!!)
+    query_params = request.query_params
+
+    # (!!!) 2. 建立基礎查詢 (!!!)
     stmt = (
         select(Inspection)
         .options(
@@ -751,8 +766,42 @@ async def get_inspection_list_all(
             joinedload(Inspection.handler),
             joinedload(Inspection.vehicle)
         )
-        .order_by(desc(Inspection.inspected_on), desc(Inspection.notification_date))
     )
+
+    # (!!!) 3. 處理篩選 (!!!)
+    filter_vehicle_id = query_params.get("filter_vehicle_id")
+    filter_notify_start = query_params.get("filter_notify_start")
+    filter_notify_end = query_params.get("filter_notify_end")
+    filter_deadline_start = query_params.get("filter_deadline_start")
+    filter_deadline_end = query_params.get("filter_deadline_end")
+    
+    if filter_vehicle_id:
+        stmt = stmt.where(Inspection.vehicle_id == UUID(filter_vehicle_id))
+        
+    # 通知日期
+    if filter_notify_start:
+        stmt = stmt.where(Inspection.notification_date >= filter_notify_start)
+    if filter_notify_end:
+        stmt = stmt.where(Inspection.notification_date <= filter_notify_end)
+        
+    # 期限
+    if filter_deadline_start:
+        stmt = stmt.where(Inspection.deadline_date >= filter_deadline_start)
+    if filter_deadline_end:
+        stmt = stmt.where(Inspection.deadline_date <= filter_deadline_end)
+
+    # (!!!) 4. 處理排序 (!!!)
+    sort_by = query_params.get("sort_by", "inspected_on") # 預設依「實際驗車日」
+    sort_order = query_params.get("sort_order", "desc")  # 預設倒序
+    
+    sort_column = getattr(Inspection, sort_by, Inspection.inspected_on)
+    
+    if sort_order == "desc":
+        stmt = stmt.order_by(desc(sort_column))
+    else:
+        stmt = stmt.order_by(sort_column)
+
+    # (!!!) 5. 執行查詢 (!!!)
     inspection_records = db.scalars(stmt).all()
 
     return templates.TemplateResponse(
@@ -760,6 +809,10 @@ async def get_inspection_list_all(
         context={
             "request": request,
             "inspection_records": inspection_records,
+            # (!!!) 6. 傳遞參數回樣板 (!!!)
+            "query_params": query_params,
+            "current_sort_by": sort_by,
+            "current_sort_order": sort_order
         }
     )
 

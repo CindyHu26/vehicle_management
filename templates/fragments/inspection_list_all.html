@@ -3,23 +3,128 @@
     <thead class="bg-gray-100">
       <tr>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">車輛</th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/inspection-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_notify_start": "{{ query_params.get("filter_notify_start", "") }}",
+            "filter_notify_end": "{{ query_params.get("filter_notify_end", "") }}",
+            "filter_deadline_start": "{{ query_params.get("filter_deadline_start", "") }}",
+            "filter_deadline_end": "{{ query_params.get("filter_deadline_end", "") }}",
+            "sort_by": "vehicle_id",
+            "sort_order": "{% if current_sort_by == "vehicle_id" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#inspection-list-container" hx-swap="innerHTML"
+        >
+          車輛
+          {% if current_sort_by == "vehicle_id" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">檢驗類型</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">實際驗車日</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">下次應驗日</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">金額</th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/inspection-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_notify_start": "{{ query_params.get("filter_notify_start", "") }}",
+            "filter_notify_end": "{{ query_params.get("filter_notify_end", "") }}",
+            "filter_deadline_start": "{{ query_params.get("filter_deadline_start", "") }}",
+            "filter_deadline_end": "{{ query_params.get("filter_deadline_end", "") }}",
+            "sort_by": "inspected_on",
+            "sort_order": "{% if current_sort_by == "inspected_on" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#inspection-list-container" hx-swap="innerHTML"
+        >
+          實際驗車日
+          {% if current_sort_by == "inspected_on" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/inspection-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_notify_start": "{{ query_params.get("filter_notify_start", "") }}",
+            "filter_notify_end": "{{ query_params.get("filter_notify_end", "") }}",
+            "filter_deadline_start": "{{ query_params.get("filter_deadline_start", "") }}",
+            "filter_deadline_end": "{{ query_params.get("filter_deadline_end", "") }}",
+            "sort_by": "next_due_on",
+            "sort_order": "{% if current_sort_by == "next_due_on" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#inspection-list-container" hx-swap="innerHTML"
+        >
+          下次應驗日
+          {% if current_sort_by == "next_due_on" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/inspection-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_notify_start": "{{ query_params.get("filter_notify_start", "") }}",
+            "filter_notify_end": "{{ query_params.get("filter_notify_end", "") }}",
+            "filter_deadline_start": "{{ query_params.get("filter_deadline_start", "") }}",
+            "filter_deadline_end": "{{ query_params.get("filter_deadline_end", "") }}",
+            "sort_by": "amount",
+            "sort_order": "{% if current_sort_by == "amount" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#inspection-list-container" hx-swap="innerHTML"
+        >
+          金額
+          {% if current_sort_by == "amount" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">已對帳</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">經手人</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">通知日期</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">期限</th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/inspection-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_notify_start": "{{ query_params.get("filter_notify_start", "") }}",
+            "filter_notify_end": "{{ query_params.get("filter_notify_end", "") }}",
+            "filter_deadline_start": "{{ query_params.get("filter_deadline_start", "") }}",
+            "filter_deadline_end": "{{ query_params.get("filter_deadline_end", "") }}",
+            "sort_by": "notification_date",
+            "sort_order": "{% if current_sort_by == "notification_date" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#inspection-list-container" hx-swap="innerHTML"
+        >
+          通知日期
+          {% if current_sort_by == "notification_date" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/inspection-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_notify_start": "{{ query_params.get("filter_notify_start", "") }}",
+            "filter_notify_end": "{{ query_params.get("filter_notify_end", "") }}",
+            "filter_deadline_start": "{{ query_params.get("filter_deadline_start", "") }}",
+            "filter_deadline_end": "{{ query_params.get("filter_deadline_end", "") }}",
+            "sort_by": "deadline_date",
+            "sort_order": "{% if current_sort_by == "deadline_date" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#inspection-list-container" hx-swap="innerHTML"
+        >
+          期限
+          {% if current_sort_by == "deadline_date" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">備註</th>
       </tr>
     </thead>
     <tbody class="bg-white divide-y divide-gray-200">
       {% if not inspection_records %}
         <tr>
-          <td colspan="11" class="px-4 py-4 text-center text-sm text-gray-500">
-            尚無檢驗紀錄
+          <td colspan="12" class="px-4 py-4 text-center text-sm text-gray-500">
+            尚無檢驗紀錄 (或查無符合條件的紀錄)
           </td>
         </tr>
       {% endif %} 
