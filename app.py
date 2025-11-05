@@ -564,7 +564,7 @@ async def create_or_update_maintenance(
             if category == MaintenanceCategory.repair:
                 fee_type = FeeType.repair_parts
 
-            # 費用請款人優先抓「行政處理人」，其次抓「當時使用人」
+            # 費用請款人優先抓「經手人」，其次抓「當時使用人」
             fee_user_id = handler_uuid if handler_uuid else user_uuid
 
             new_fee = Fee(

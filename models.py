@@ -125,7 +125,7 @@ class Maintenance(Base):
     # (v7) 使用人 vs 處理人
     user_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "當時使用人(可選)"})
     user = relationship("Employee", foreign_keys=[user_id], back_populates="maintenance_user_records")
-    handler_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "行政處理人"})
+    handler_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "經手人"})
     handler = relationship("Employee", foreign_keys=[handler_id], back_populates="maintenance_handler_records")
     
     category = Column(Enum(MaintenanceCategory), nullable=False, info={"label": "類別"})
@@ -166,7 +166,7 @@ class Inspection(Base):
     # (v7) 使用人 vs 處理人
     user_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "當時使用人(可選)"})
     user = relationship("Employee", foreign_keys=[user_id], back_populates="inspection_user_records")
-    handler_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "行政處理人"})
+    handler_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "經手人"})
     handler = relationship("Employee", foreign_keys=[handler_id], back_populates="inspection_handler_records")
     
     kind = Column(Enum(InspectionKind), nullable=False, info={"label": "檢驗類型"})
