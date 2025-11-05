@@ -3,11 +3,73 @@
     <thead class="bg-gray-100">
       <tr>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">收到單據日</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">請款人</th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/fee-list-all"
+          hx-vals='{
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+            "filter_fee_type": "{{ query_params.get("filter_fee_type", "") }}",
+            "filter_is_paid": "{{ query_params.get("filter_is_paid", "") }}",
+            "sort_by": "receive_date",
+            "sort_order": "{% if current_sort_by == "receive_date" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#fee-list-container" hx-swap="innerHTML"
+        >
+          收到單據日
+          {% if current_sort_by == "receive_date" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/fee-list-all"
+          hx-vals='{
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+            "filter_fee_type": "{{ query_params.get("filter_fee_type", "") }}",
+            "filter_is_paid": "{{ query_params.get("filter_is_paid", "") }}",
+            "sort_by": "user_id",
+            "sort_order": "{% if current_sort_by == "user_id" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#fee-list-container" hx-swap="innerHTML"
+        >
+          請款人
+          {% if current_sort_by == "user_id" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">費用類型</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">關聯車輛</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">金額</th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/fee-list-all"
+          hx-vals='{
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+            "filter_fee_type": "{{ query_params.get("filter_fee_type", "") }}",
+            "filter_is_paid": "{{ query_params.get("filter_is_paid", "") }}",
+            "sort_by": "vehicle_id",
+            "sort_order": "{% if current_sort_by == "vehicle_id" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#fee-list-container" hx-swap="innerHTML"
+        >
+          關聯車輛
+          {% if current_sort_by == "vehicle_id" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/fee-list-all"
+          hx-vals='{
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+            "filter_fee_type": "{{ query_params.get("filter_fee_type", "") }}",
+            "filter_is_paid": "{{ query_params.get("filter_is_paid", "") }}",
+            "sort_by": "amount",
+            "sort_order": "{% if current_sort_by == "amount" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#fee-list-container" hx-swap="innerHTML"
+        >
+          金額
+          {% if current_sort_by == "amount" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">已付款</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">發票號碼</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">備註/項目</th>

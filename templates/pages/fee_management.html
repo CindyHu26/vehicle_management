@@ -13,6 +13,63 @@
     </button>
   </div>
 
+  <form 
+    class="mb-4 p-4 bg-white rounded-lg shadow-sm"
+    hx-get="/fee-list-all"
+    hx-target="#fee-list-container"
+    hx-swap="innerHTML"
+    hx-trigger="change" 
+  >
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+      <div>
+        <label for="filter_user_id" class="block text-sm font-medium text-gray-700">請款人</label>
+        <select name="filter_user_id" id="filter_user_id"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有人 --</option>
+          {% for emp in all_employees %}
+            <option value="{{ emp.id }}" {% if query_params.get('filter_user_id') == emp.id|string %}selected{% endif %}>
+              {{ emp.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="filter_fee_type" class="block text-sm font-medium text-gray-700">費用類型</label>
+        <select name="filter_fee_type" id="filter_fee_type"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有類型 --</option>
+          {% for ft in all_fee_types %}
+            <option value="{{ ft.value }}" {% if query_params.get('filter_fee_type') == ft.value %}selected{% endif %}>
+              {{ fee_type_map.get(ft.value, ft.value) }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="filter_is_paid" class="block text-sm font-medium text-gray-700">已付款</label>
+        <select name="filter_is_paid" id="filter_is_paid"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 全部 --</option>
+          <option value="yes" {% if query_params.get('filter_is_paid') == 'yes' %}selected{% endif %}>是</option>
+          <option value="no" {% if query_params.get('filter_is_paid') == 'no' %}selected{% endif %}>否</option>
+        </select>
+      </div>
+
+      <div class="flex items-end">
+        <a href="#" 
+           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 w-full text-center"
+           hx-get="/fee-management"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+        >
+          重設
+        </a>
+      </div>
+    </div>
+  </form>
   <div 
     id="fee-list-container"
     hx-get="/fee-list-all"

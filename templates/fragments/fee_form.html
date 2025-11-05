@@ -65,7 +65,7 @@
 
         <div>
           <label for="amount" class="block text-sm font-medium text-gray-700">金額</label>
-          <input type="number" step="0.01" name="amount" id="amount" value="{{ fee.amount if fee else '' }}"
+          <input type="number" step="0.01" name="amount" id="amount" value="{{ (fee.amount or '') if fee else '' }}"
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
 
@@ -93,14 +93,14 @@
             <input id="is_paid" name="is_paid" type="checkbox" value="True" 
                    {% if fee and fee.is_paid %}checked{% endif %}
                    class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-            <label for="is_paid" class="ml-2 block text-sm text-gray-900">已請款</label>
+            <label for="is_paid" class="ml-2 block text-sm text-gray-900">已付款</label>
         </div>
 
         <div class="col-span-1 md:col-span-2">
             <label for="notes" class="block text-sm font-medium text-gray-700">備註/項目</label>
             <textarea name="notes" id="notes" rows="3"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >{{ fee.notes if fee else '' }}</textarea>
+            >{{ (fee.notes or '') if fee else '' }}</textarea>
         </div>
 
       </div>

@@ -938,11 +938,25 @@ async def delete_inspection(
 
 # --- 費用紀錄 CRUD ---
 @app.get("/fee-management")
-async def get_fee_page(request: Request):
+async def get_fee_page(
+    request: Request,
+    db: Session = Depends(get_db) # (!!!) 修正 1：加入 db 依賴 (!!!)
+):
     """ 渲染「費用管理 (全列表)」的主頁面 """
+    
+    # (!!!) 修正 2：查詢篩選器所需的資料 (!!!)
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    all_fee_types = list(FeeType)
+    
     return templates.TemplateResponse(
         name="pages/fee_management.html",
-        context={"request": request}
+        context={
+            "request": request,
+            # (!!!) 修正 3：傳遞資料到模板 (!!!)
+            "all_employees": all_employees,
+            "all_fee_types": all_fee_types,
+            "query_params": request.query_params
+        }
     )
 
 @app.get("/fee-list-all")
@@ -951,14 +965,58 @@ async def get_fee_list_all(
     db: Session = Depends(get_db)
 ):
     """ 取得「所有」車輛/人員的費用列表 (片段) """
+    
+    query_params = request.query_params # (!!!) 修正 1：取得查詢參數 (!!!)
+    
     stmt = (
         select(Fee)
         .options(
             joinedload(Fee.user), # 請款人
             joinedload(Fee.vehicle) # 關聯車輛
         )
-        .order_by(desc(Fee.receive_date), desc(Fee.request_date))
     )
+    
+    # (!!!) 修正 2：處理篩選 (!!!)
+    filter_user_id = query_params.get("filter_user_id")
+    filter_fee_type = query_params.get("filter_fee_type")
+    filter_is_paid = query_params.get("filter_is_paid")
+
+    if filter_user_id:
+        try:
+            stmt = stmt.where(Fee.user_id == UUID(filter_user_id))
+        except ValueError:
+            pass # 忽略無效的 UUID
+    if filter_fee_type:
+        stmt = stmt.where(Fee.fee_type == filter_fee_type)
+    if filter_is_paid == "yes":
+        stmt = stmt.where(Fee.is_paid == True)
+    elif filter_is_paid == "no":
+        stmt = stmt.where(Fee.is_paid == False)
+
+    # (!!!) 修正 3：處理排序 (!!!)
+    sort_by = query_params.get("sort_by", "receive_date") # 預設依「收到單據日」
+    sort_order = query_params.get("sort_order", "desc") # 預設倒序 (最新優先)
+
+    # 處理關聯欄位的排序
+    if sort_by == "user_id":
+        sort_column = Employee.name
+        stmt = stmt.join(Fee.user, isouter=True) 
+    elif sort_by == "vehicle_id":
+        sort_column = Vehicle.plate_no
+        stmt = stmt.join(Fee.vehicle, isouter=True)
+    else:
+        sort_column = getattr(Fee, sort_by, Fee.receive_date) # 安全的 attribute 存取
+
+    if sort_order == "desc":
+        stmt = stmt.order_by(desc(sort_column))
+    else:
+        stmt = stmt.order_by(sort_column)
+
+    # (!!!) 修正 4：加入次要排序，確保順序穩定 (!!!)
+    if sort_by != "receive_date":
+         stmt = stmt.order_by(desc(Fee.receive_date))
+
+
     fee_records = db.scalars(stmt).all()
 
     return templates.TemplateResponse(
@@ -966,6 +1024,10 @@ async def get_fee_list_all(
         context={
             "request": request,
             "fee_records": fee_records,
+            # (!!!) 修正 5：傳遞參數回模板 (!!!)
+            "query_params": query_params,
+            "current_sort_by": sort_by,
+            "current_sort_order": sort_order
         }
     )
 
@@ -1106,29 +1168,6 @@ async def delete_fee(
     return Response(
         status_code=200,
         headers={"HX-Trigger": "refreshFeeList, refreshFeeListAll"}
-    )
-@app.get("/vehicle/{vehicle_id}/asset-log-list")
-async def get_asset_log_list(
-    request: Request,
-    vehicle_id: UUID,
-    db: Session = Depends(get_db)
-):
-    """ 取得「單一車輛」的資產日誌 (片段) """
-    stmt = (
-        select(VehicleAssetLog)
-        .where(VehicleAssetLog.vehicle_id == vehicle_id)
-        .options(joinedload(VehicleAssetLog.user))
-        .order_by(desc(VehicleAssetLog.log_date))
-    )
-    asset_logs = db.scalars(stmt).all()
-
-    return templates.TemplateResponse(
-        name="fragments/asset_log_list.html",
-        context={
-            "request": request,
-            "asset_logs": asset_logs,
-            "vehicle_id": vehicle_id
-        }
     )
 
 @app.get("/vehicle/{vehicle_id}/asset-log-list")
