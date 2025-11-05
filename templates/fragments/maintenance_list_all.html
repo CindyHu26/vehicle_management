@@ -2,11 +2,73 @@
   <table class="min-w-full divide-y divide-gray-200">
     <thead class="bg-gray-100">
       <tr>
+        
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">車輛</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">執行日期</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">類別</th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">金額</th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/maintenance-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_category": "{{ query_params.get("filter_category", "") }}",
+            "sort_by": "vehicle_id",
+            "sort_order": "{% if current_sort_by == "vehicle_id" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#maintenance-list-container" hx-swap="innerHTML"
+        >
+          車輛
+          {% if current_sort_by == "vehicle_id" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/maintenance-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_category": "{{ query_params.get("filter_category", "") }}",
+            "sort_by": "performed_on",
+            "sort_order": "{% if current_sort_by == "performed_on" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#maintenance-list-container" hx-swap="innerHTML"
+        >
+          執行日期
+          {% if current_sort_by == "performed_on" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/maintenance-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_category": "{{ query_params.get("filter_category", "") }}",
+            "sort_by": "category",
+            "sort_order": "{% if current_sort_by == "category" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#maintenance-list-container" hx-swap="innerHTML"
+        >
+          類別
+          {% if current_sort_by == "category" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+
+        <th 
+          class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer"
+          hx-get="/maintenance-list-all"
+          hx-vals='{
+            "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
+            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_category": "{{ query_params.get("filter_category", "") }}",
+            "sort_by": "amount",
+            "sort_order": "{% if current_sort_by == "amount" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+          }'
+          hx-target="#maintenance-list-container" hx-swap="innerHTML"
+        >
+          金額
+          {% if current_sort_by == "amount" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+        </th>
+        
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">已對帳</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">當時里程</th>
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">當時使用人</th>
@@ -18,6 +80,7 @@
         <th class="px-3 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">表定保養里程</th>
       </tr>
     </thead>
+    
     <tbody class="bg-white divide-y divide-gray-200">
       {% if not maintenance_records %}
         <tr>

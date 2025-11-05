@@ -1,5 +1,4 @@
-<div 
-  >
+<div>
   <div class="mb-4 flex justify-between items-center">
     <h2 class="text-3xl font-bold text-gray-800">
       保養維修 (全列表)
@@ -13,6 +12,63 @@
       + 新增保養紀錄
     </button>
   </div>
+  
+  <form 
+    class="mb-4 p-4 bg-white rounded-lg shadow-sm"
+    hx-get="/maintenance-list-all"
+    hx-target="#maintenance-list-container"
+    hx-swap="innerHTML"
+    hx-trigger="change" 
+  >
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div>
+        <label for="filter_vehicle_id" class="block text-sm font-medium text-gray-700">車輛</label>
+        <select name="filter_vehicle_id" id="filter_vehicle_id"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有車輛 --</option>
+          {% for v in all_vehicles %}
+            <option value="{{ v.id }}" {% if query_params.get('filter_vehicle_id') == str(v.id) %}selected{% endif %}>
+              {{ v.plate_no }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="filter_handler_id" class="block text-sm font-medium text-gray-700">行政處理人</label>
+        <select name="filter_handler_id" id="filter_handler_id"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有人 --</option>
+          {% for emp in all_employees %}
+            <option value="{{ emp.id }}" {% if query_params.get('filter_handler_id') == str(emp.id) %}selected{% endif %}>
+              {{ emp.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="filter_category" class="block text-sm font-medium text-gray-700">類別</label>
+        <select name="filter_category" id="filter_category"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有類別 --</option>
+          {% for cat in all_categories %}
+            <option value="{{ cat.value }}" {% if query_params.get('filter_category') == cat.value %}selected{% endif %}>
+              {{ maintenance_category_map.get(cat.value, cat.value) }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-end">
+        <a href="#" 
+           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 w-full text-center"
+           hx-get="/maintenance-management"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+        >
+          重設
+        </a>
+      </div>
+    </div>
+  </form>
 
   <div 
     id="maintenance-list-container"

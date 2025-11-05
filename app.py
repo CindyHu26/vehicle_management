@@ -387,23 +387,54 @@ async def get_maintenance_list_all(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """ 取得「所有」車輛的保養列表 (片段) """
+    """ 取得「所有」車輛的保養列表 (片段) - 支援篩選和排序 """
+    
+    query_params = request.query_params
+    
+    # 1. (!!!) 建立基礎查詢 (!!!)
     stmt = (
         select(Maintenance)
         .options(
             joinedload(Maintenance.user), 
             joinedload(Maintenance.handler),
-            joinedload(Maintenance.vehicle) # 需要額外 join 車輛
+            joinedload(Maintenance.vehicle)
         )
-        .order_by(desc(Maintenance.performed_on)) # 依執行日期倒序
     )
+    
+    # 2. (!!!) 處理篩選 (!!!)
+    filter_vehicle_id = query_params.get("filter_vehicle_id")
+    filter_handler_id = query_params.get("filter_handler_id")
+    filter_category = query_params.get("filter_category")
+    
+    if filter_vehicle_id:
+        stmt = stmt.where(Maintenance.vehicle_id == UUID(filter_vehicle_id))
+    if filter_handler_id:
+        stmt = stmt.where(Maintenance.handler_id == UUID(filter_handler_id))
+    if filter_category:
+        stmt = stmt.where(Maintenance.category == filter_category)
+        
+    # 3. (!!!) 處理排序 (!!!)
+    sort_by = query_params.get("sort_by", "performed_on")
+    sort_order = query_params.get("sort_order", "desc")
+    
+    sort_column = getattr(Maintenance, sort_by, Maintenance.performed_on)
+    
+    if sort_order == "desc":
+        stmt = stmt.order_by(desc(sort_column))
+    else:
+        stmt = stmt.order_by(sort_column)
+
     maintenance_records = db.scalars(stmt).all()
 
+    # 4. (!!!) 傳回參數，供排序按鈕保持狀態 (!!!)
     return templates.TemplateResponse(
-        name="fragments/maintenance_list_all.html", # 我們即將建立這個檔案
+        name="fragments/maintenance_list_all.html",
         context={
             "request": request,
             "maintenance_records": maintenance_records,
+            "query_params": query_params,
+            "current_sort_by": sort_by,
+            "current_sort_order": sort_order
         }
     )
 
@@ -444,10 +475,26 @@ async def get_maintenance_form(
 
 # 保養管理主頁面
 @app.get("/maintenance-management")
-async def get_maintenance_page(request: Request):
+async def get_maintenance_page(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """ 
+    渲染「保養管理 (全列表)」的主頁面。
+    傳遞篩選器所需的資料
+    """
+    all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    
     return templates.TemplateResponse(
         name="pages/maintenance_management.html",
-        context={"request": request}
+        context={
+            "request": request,
+            "all_vehicles": all_vehicles,
+            "all_employees": all_employees,
+            "all_categories": list(MaintenanceCategory),
+            "query_params": request.query_params # 傳遞空參數，供初始載入
+        }
     )
 
 @app.post("/maintenance/new")
