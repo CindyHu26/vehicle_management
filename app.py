@@ -112,6 +112,28 @@ async def get_main_page(request: Request):
         context={"request": request}
     )
 
+# 新增「車輛管理」的主頁面路由
+@app.get("/vehicle-management")
+async def get_vehicle_management_page(
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    """
+    渲染「車輛管理」的主頁面，包含篩選器。
+    """
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    
+    return templates.TemplateResponse(
+        name="pages/vehicle_management.html", # 我們將在步驟 3 建立這個新檔案
+        context={
+            "request": request,
+            "all_employees": all_employees,
+            "all_vehicle_types": list(VehicleType),
+            "all_vehicle_statuses": list(VehicleStatus),
+            "query_params": request.query_params # 傳遞查詢參數
+        }
+    )
+
 @app.get("/vehicle/{vehicle_id}")
 async def get_vehicle_detail_page(
     request: Request, 
@@ -142,19 +164,54 @@ async def get_vehicle_detail_page(
 
 # --- 列表 API (車輛) ---
 @app.get("/vehicles-list")
-async def get_vehicles_list(request: Request, db: Session = Depends(get_db)):
+async def get_vehicles_list(
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    """
+    取得車輛列表 (片段)，支援篩選和排序。
+    """
+    query_params = request.query_params
+    
+    # 1. 建立基礎查詢
     stmt = (
         select(Vehicle)
         .options(joinedload(Vehicle.user)) 
-        .order_by(Vehicle.plate_no)
     )
+    
+    # 2. 處理篩選
+    filter_user_id = query_params.get("filter_user_id")
+    filter_vehicle_type = query_params.get("filter_vehicle_type")
+    filter_status = query_params.get("filter_status")
+    
+    if filter_user_id:
+        stmt = stmt.where(Vehicle.user_id == UUID(filter_user_id))
+    if filter_vehicle_type:
+        stmt = stmt.where(Vehicle.vehicle_type == filter_vehicle_type)
+    if filter_status:
+        stmt = stmt.where(Vehicle.status == filter_status)
+
+    # 3. 處理排序
+    sort_by = query_params.get("sort_by", "plate_no") # 預設依車牌排序
+    sort_order = query_params.get("sort_order", "asc") # 預設升冪
+    
+    sort_column = getattr(Vehicle, sort_by, Vehicle.plate_no)
+    
+    if sort_order == "desc":
+        stmt = stmt.order_by(desc(sort_column))
+    else:
+        stmt = stmt.order_by(sort_column)
+
     vehicles = db.scalars(stmt).all()
     
     return templates.TemplateResponse(
         name="fragments/vehicle_list.html",
         context={
             "request": request,
-            "vehicles": vehicles
+            "vehicles": vehicles,
+            "query_params": query_params,
+            "current_sort_by": sort_by,
+            "current_sort_order": sort_order
         }
     )
 

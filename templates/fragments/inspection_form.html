@@ -31,7 +31,7 @@
               <option value="">-- 請選擇車輛 --</option>
               {% for v in all_vehicles %}
                 <option value="{{ v.id }}" {% if selected_vehicle_id and selected_vehicle_id == v.id %}selected{% endif %}>
-                  {{ v.plate_no }} ({{ v.model or 'N/A' }})
+                  {{ v.plate_no }} ({{ v.model or '' }})
                 </option>
               {% endfor %}
             </select>

@@ -30,7 +30,7 @@
               <option value="">-- 無 (私車/雜項) --</option>
               {% for v in all_vehicles %}
                 <option value="{{ v.id }}" {% if selected_vehicle_id and selected_vehicle_id == v.id %}selected{% endif %}>
-                  {{ v.plate_no }} ({{ v.model or 'N/A' }})
+                  {{ v.plate_no }} ({{ v.model or '' }})
                 </option>
               {% endfor %}
             </select>

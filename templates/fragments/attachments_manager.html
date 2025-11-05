@@ -30,7 +30,7 @@
                 {{ att.file_name }}
               </a>
               <p class="text-sm text-gray-500 truncate">
-                {{ att.description or 'N/A' }}
+                {{ att.description or '' }}
               </p>
               <p class="text-xs text-gray-400">
                 {{ att.uploaded_at.strftime('%Y-%m-%d %H:%M') }}

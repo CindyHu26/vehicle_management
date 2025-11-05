@@ -1,0 +1,81 @@
+<div>
+  <div class="mb-4 flex justify-between items-center">
+    <h2 class="text-3xl font-bold text-gray-800">
+      車輛管理
+    </h2>
+    <button 
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
+      hx-get="/vehicle/new"
+      hx-target="#modal-container"
+      hx-swap="beforeend"
+    >
+      + 新增車輛
+    </button>
+  </div>
+  
+  <form 
+    class="mb-4 p-4 bg-white rounded-lg shadow-sm"
+    hx-get="/vehicles-list"
+    hx-target="#vehicle-list-container"
+    hx-swap="innerHTML"
+    hx-trigger="change" 
+  >
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div>
+        <label for="filter_user_id" class="block text-sm font-medium text-gray-700">主要使用人</label>
+        <select name="filter_user_id" id="filter_user_id"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有人 --</option>
+          {% for emp in all_employees %}
+            <option value="{{ emp.id }}" {% if query_params.get('filter_user_id') == emp.id|string %}selected{% endif %}>
+              {{ emp.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="filter_vehicle_type" class="block text-sm font-medium text-gray-700">車輛類型</label>
+        <select name="filter_vehicle_type" id="filter_vehicle_type"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有類型 --</option>
+          {% for vt in all_vehicle_types %}
+            <option value="{{ vt.value }}" {% if query_params.get('filter_vehicle_type') == vt.value %}selected{% endif %}>
+              {{ vehicle_type_map.get(vt.value, vt.value) }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="filter_status" class="block text-sm font-medium text-gray-700">狀態</label>
+        <select name="filter_status" id="filter_status"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <option value="">-- 所有狀態 --</option>
+          {% for vs in all_vehicle_statuses %}
+            <option value="{{ vs.value }}" {% if query_params.get('filter_status') == vs.value %}selected{% endif %}>
+              {{ vehicle_status_map.get(vs.value, vs.value) }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-end">
+        <a href="#" 
+           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 w-full text-center"
+           hx-get="/vehicle-management"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+        >
+          重設
+        </a>
+      </div>
+    </div>
+  </form>
+
+  <div 
+    id="vehicle-list-container"
+    hx-get="/vehicles-list"
+    hx-trigger="load, refreshVehicleList from:body"
+    hx-swap="innerHTML"
+  >
+    <p class="p-6 text-gray-500">正在載入車輛列表...</p>
+  </div>
+</div>

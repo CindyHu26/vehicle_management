@@ -9,7 +9,7 @@
         {{ vehicle.plate_no }}
       </h2>
       <p class="text-lg text-gray-600">
-        {{ vehicle_type_map.get(vehicle.vehicle_type.value, vehicle.vehicle_type.value) }} / {{ vehicle.model or 'N/A' }}
+        {{ vehicle_type_map.get(vehicle.vehicle_type.value, vehicle.vehicle_type.value) }} / {{ vehicle.model or '' }}
       </p>
     </div>
     <button 
@@ -27,7 +27,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
         <span class="text-sm font-medium text-gray-500">主要使用人</span>
-        <p class="text-base text-gray-900">{{ vehicle.user.name if vehicle.user else 'N/A' }}</p>
+        <p class="text-base text-gray-900">{{ vehicle.user.name if vehicle.user else '' }}</p>
       </div>
       <div>
         <span class="text-sm font-medium text-gray-500">狀態</span>
@@ -49,15 +49,15 @@
       </div>
       <div>
         <span class="text-sm font-medium text-gray-500">所屬公司</span>
-        <p class="text-base text-gray-900">{{ vehicle.company or 'N/A' }}</p>
+        <p class="text-base text-gray-900">{{ vehicle.company or '' }}</p>
       </div>
       <div>
         <span class="text-sm font-medium text-gray-500">品牌</span>
-        <p class="text-base text-gray-900">{{ vehicle.make or 'N/A' }}</p>
+        <p class="text-base text-gray-900">{{ vehicle.make or '' }}</p>
       </div>
       <div>
         <span class="text-sm font-medium text-gray-500">型號</span>
-        <p class="text-base text-gray-900">{{ vehicle.model or 'N/A' }}</p>
+        <p class="text-base text-gray-900">{{ vehicle.model or '' }}</p>
       </div>
     </div>
   </div>
