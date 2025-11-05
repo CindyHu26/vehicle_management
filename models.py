@@ -32,6 +32,7 @@ class Employee(Base):
     
     has_car_license = Column(Boolean, default=False, info={"label": "有汽車駕照"})
     has_motorcycle_license = Column(Boolean, default=False, info={"label": "有機車駕照"})
+    is_handler = Column(Boolean, default=False, info={"label": "經手人"})
 
     def __str__(self) -> str:
         # (!!!) 2. 確保 __str__ 永遠回傳 name (!!!)

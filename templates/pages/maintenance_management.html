@@ -27,7 +27,7 @@
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
           <option value="">-- 所有車輛 --</option>
           {% for v in all_vehicles %}
-            <option value="{{ v.id }}" {% if query_params.get('filter_vehicle_id') == str(v.id) %}selected{% endif %}>
+            <option value="{{ v.id }}" {% if query_params.get('filter_vehicle_id') == v.id|string %}selected{% endif %}>
               {{ v.plate_no }}
             </option>
           {% endfor %}
@@ -39,7 +39,7 @@
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
           <option value="">-- 所有人 --</option>
           {% for emp in all_employees %}
-            <option value="{{ emp.id }}" {% if query_params.get('filter_handler_id') == str(emp.id) %}selected{% endif %}>
+            <option value="{{ emp.id }}" {% if query_params.get('filter_handler_id') == emp.id|string %}selected{% endif %}>
               {{ emp.name }}
             </option>
           {% endfor %}

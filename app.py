@@ -1,3 +1,4 @@
+# 檔案名稱: app.py
 # app.py
 import os
 import shutil
@@ -303,7 +304,8 @@ async def create_or_update_employee(
     name: str = Form(...),
     phone: Optional[str] = Form(None),
     has_car_license: bool = Form(False),
-    has_motorcycle_license: bool = Form(False)
+    has_motorcycle_license: bool = Form(False),
+    is_handler: bool = Form(False)
 ):
     if employee_id:
         employee = db.get(Employee, employee_id)
@@ -321,6 +323,7 @@ async def create_or_update_employee(
     employee.phone = phone
     employee.has_car_license = has_car_license
     employee.has_motorcycle_license = has_motorcycle_license
+    employee.is_handler = is_handler
     
     try:
         db.commit()
@@ -385,7 +388,7 @@ async def get_maintenance_list(
 @app.get("/maintenance-list-all")
 async def get_maintenance_list_all(
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db) # (!!!) 修正 1：從 get.db 改為 get_db (!!!)
 ):
     """ 取得「所有」車輛的保養列表 (片段) - 支援篩選和排序 """
     
@@ -459,6 +462,9 @@ async def get_maintenance_form(
         all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
 
     all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    all_handlers = db.scalars(
+            select(Employee).where(Employee.is_handler == True).order_by(Employee.name)
+        ).all()
 
     return templates.TemplateResponse(
         name="fragments/maintenance_form.html",
@@ -468,6 +474,7 @@ async def get_maintenance_form(
             # 傳遞預選的 vehicle_id (無論是來自查詢參數還是編輯模式)
             "selected_vehicle_id": vehicle_id, 
             "all_employees": all_employees,
+            "all_handlers": all_handlers,
             "all_vehicles": all_vehicles, # 傳遞所有車輛 (僅限新增模式)
             "maintenance_categories": list(MaintenanceCategory),
         }
@@ -477,7 +484,7 @@ async def get_maintenance_form(
 @app.get("/maintenance-management")
 async def get_maintenance_page(
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db) # (!!!) 修正 2：從 get.db 改為 get_db (!!!)
 ):
     """ 
     渲染「保養管理 (全列表)」的主頁面。
@@ -690,6 +697,9 @@ async def get_inspection_form(
         all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
 
     all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    all_handlers = db.scalars(
+            select(Employee).where(Employee.is_handler == True).order_by(Employee.name)
+        ).all()
 
     return templates.TemplateResponse(
         name="fragments/inspection_form.html",
@@ -698,6 +708,7 @@ async def get_inspection_form(
             "insp": insp,
             "selected_vehicle_id": vehicle_id, 
             "all_employees": all_employees,
+            "all_handlers": all_handlers,
             "all_vehicles": all_vehicles,
             "inspection_kinds": list(InspectionKind),
         }
