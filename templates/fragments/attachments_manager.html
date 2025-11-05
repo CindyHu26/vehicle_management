@@ -1,14 +1,15 @@
 <div 
   class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50"
   hx-on:click="if (event.target === this) this.remove()"
+
+  hx-get="/attachments/manage/{{ entity_type.value }}/{{ entity_id }}"
+  hx-trigger="refreshAttachmentsList from:body"
+  hx-target="this"
+  hx-swap="outerHTML"
 >
   <div 
     class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-    hx-get="/attachments/manage/{{ entity_type }}/{{ entity_id }}"
-    hx-trigger="refreshAttachmentsList from:body"
-    hx-target="this"
-    hx-swap="outerHTML"
-  >
+    >
     
     <h2 class="text-2xl font-semibold mb-4">附件管理</h2>
 
@@ -17,33 +18,59 @@
       {% if not attachments %}
         <p class="text-sm text-gray-500">尚無附件</p>
       {% else %}
+        
         <ul class="divide-y divide-gray-200 border rounded-md">
+          
           {% for att in attachments %}
-          <li class="px-4 py-3 flex items-center justify-between space-x-4">
-            <div class="flex-1 min-w-0">
-              <a 
-                href="{{ att.file_path }}" 
-                target="_blank" 
-                class="text-sm font-medium text-blue-600 hover:text-blue-800 truncate"
-                title="點擊開啟：{{ att.file_name }}"
+            
+            {% set file_ext = att.file_name.split('.')[-1] | lower %}
+
+            <li class="px-4 py-3 flex items-center justify-between space-x-4">
+              
+              <div class="flex-shrink-0 w-16 h-16">
+                {% if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] %}
+                  <a href="{{ att.file_path }}" target="_blank">
+                    <img src="{{ att.file_path }}" alt="預覽" 
+                         class="w-16 h-16 object-cover rounded border hover:opacity-75">
+                  </a>
+                {% elif file_ext == 'pdf' %}
+                  <a href="{{ att.file_path }}" target="_blank">
+                    <div class="w-16 h-16 bg-red-50 rounded border flex items-center justify-center hover:bg-red-100">
+                      <span class="text-sm font-medium text-red-600">PDF</span>
+                    </div>
+                  </a>
+                {% else %}
+                  <div class="w-16 h-16 bg-gray-50 rounded border flex items-center justify-center">
+                    <span class="text-xs text-gray-500 p-1 text-center">{{ file_ext | upper }}</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="flex-1 min-w-0">
+                <a 
+                  href="{{ att.file_path }}" 
+                  target="_blank" 
+                  class="text-sm font-medium text-blue-600 hover:text-blue-800 truncate"
+                  title="點擊開啟：{{ att.file_name }}"
+                >
+                  {{ att.file_name }}
+                </a>
+                <p class="text-sm text-gray-500 truncate">
+                  {{ att.description or '' }}
+                </p>
+                <p class="text-xs text-gray-400">
+                  {{ att.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
+                </p>
+              </div>
+
+              <button
+                class="text-red-500 hover:text-red-700 font-medium"
+                hx-delete="/attachment/{{ att.id }}/delete"
+                hx-confirm="確定要刪除這個附件嗎？\n檔案：{{ att.file_name }}"
               >
-                {{ att.file_name }}
-              </a>
-              <p class="text-sm text-gray-500 truncate">
-                {{ att.description or '' }}
-              </p>
-              <p class="text-xs text-gray-400">
-                {{ att.uploaded_at.strftime('%Y-%m-%d %H:%M') }}
-              </p>
-            </div>
-            <button
-              class="text-red-500 hover:text-red-700 font-medium"
-              hx-delete="/attachment/{{ att.id }}/delete"
-              hx-confirm="確定要刪除這個附件嗎？\n檔案：{{ att.file_name }}"
-            >
-              刪除
-            </button>
-          </li>
+                刪除
+              </button>
+            </li>
           {% endfor %}
         </ul>
       {% endif %}
