@@ -406,13 +406,13 @@ async def get_maintenance_list_all(
     
     # 2. (!!!) 處理篩選 (!!!)
     filter_vehicle_id = query_params.get("filter_vehicle_id")
-    filter_handler_id = query_params.get("filter_handler_id")
+    filter_user_id = query_params.get("filter_user_id")
     filter_category = query_params.get("filter_category")
     
     if filter_vehicle_id:
         stmt = stmt.where(Maintenance.vehicle_id == UUID(filter_vehicle_id))
-    if filter_handler_id:
-        stmt = stmt.where(Maintenance.handler_id == UUID(filter_handler_id))
+    if filter_user_id:
+            stmt = stmt.where(Maintenance.user_id == UUID(filter_user_id))
     if filter_category:
         stmt = stmt.where(Maintenance.category == filter_category)
         

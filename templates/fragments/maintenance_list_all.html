@@ -10,7 +10,7 @@
           hx-get="/maintenance-list-all"
           hx-vals='{
             "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
-            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
             "filter_category": "{{ query_params.get("filter_category", "") }}",
             "sort_by": "vehicle_id",
             "sort_order": "{% if current_sort_by == "vehicle_id" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
@@ -26,7 +26,7 @@
           hx-get="/maintenance-list-all"
           hx-vals='{
             "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
-            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
             "filter_category": "{{ query_params.get("filter_category", "") }}",
             "sort_by": "performed_on",
             "sort_order": "{% if current_sort_by == "performed_on" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
@@ -42,7 +42,7 @@
           hx-get="/maintenance-list-all"
           hx-vals='{
             "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
-            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
             "filter_category": "{{ query_params.get("filter_category", "") }}",
             "sort_by": "category",
             "sort_order": "{% if current_sort_by == "category" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
@@ -58,7 +58,7 @@
           hx-get="/maintenance-list-all"
           hx-vals='{
             "filter_vehicle_id": "{{ query_params.get("filter_vehicle_id", "") }}",
-            "filter_handler_id": "{{ query_params.get("filter_handler_id", "") }}",
+            "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
             "filter_category": "{{ query_params.get("filter_category", "") }}",
             "sort_by": "amount",
             "sort_order": "{% if current_sort_by == "amount" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"

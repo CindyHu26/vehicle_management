@@ -22,6 +22,9 @@
     >
       <div class="space-y-4">
         
+        <input type="hidden" name="has_car_license" value="False">
+        <input type="hidden" name="has_motorcycle_license" value="False">
+        <input type="hidden" name="is_handler" value="False">
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700">姓名</label>
           <input type="text" name="name" id="name" value="{{ employee.name if employee else '' }}" 
@@ -57,11 +60,7 @@
           </div>
         </div>
         
-        <input type="hidden" name="has_car_license" value="False">
-        <input type="hidden" name="has_motorcycle_license" value="False">
-        <input type="hidden" name="is_handler" value="False">
-
-      </div>
+        </div>
 
       <div class="mt-6 flex justify-end space-x-3">
         <button type="button" 
