@@ -24,6 +24,15 @@
                 <ul class="space-y-2">
                     <li>
                         <a href="#" 
+                           class="block px-4 py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-600 font-bold"
+                           hx-get="/dashboard" hx-target="#main-content"
+                           hx-swap="innerHTML"
+                           hx-trigger="load, click" > 儀表板
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#" 
                            class="block px-4 py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-600"
                            hx-get="/vehicle-management" hx-target="#main-content"
                            hx-swap="innerHTML"

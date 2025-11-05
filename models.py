@@ -9,6 +9,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 import enum
 
+from dateutil.relativedelta import relativedelta
+from pydantic import BaseModel
 
 Base = declarative_base()
 

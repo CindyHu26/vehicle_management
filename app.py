@@ -8,6 +8,9 @@ from typing import Optional
 from datetime import date
 from decimal import Decimal
 
+from dateutil.relativedelta import relativedelta
+from pydantic import BaseModel
+
 from fastapi import (
     FastAPI, Request, Depends, Form, HTTPException, Response,
     File, UploadFile
@@ -26,6 +29,25 @@ from models import (
     Attachment, AttachmentEntity
 )
 from config import settings, UPLOAD_PATH
+
+class InspectionReminder(BaseModel):
+    vehicle: Vehicle
+    status: str
+    last_inspection_date: Optional[date]
+    next_due_date: Optional[date]
+    is_overdue: bool
+
+    class Config:
+        arbitrary_types_allowed = True
+
+class MaintenanceReminder(BaseModel):
+    vehicle: Vehicle
+    status: str
+    last_maintenance_date: Optional[date]
+    last_maintenance_km: Optional[int]
+
+    class Config:
+        arbitrary_types_allowed = True
 
 # 翻譯字典
 VEHICLE_TYPE_MAP = {
@@ -110,6 +132,168 @@ async def get_main_page(request: Request):
     return templates.TemplateResponse(
         name="base.html",
         context={"request": request}
+    )
+
+@app.get("/dashboard")
+async def get_dashboard(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    渲染儀表板頁面，包含檢驗和保養提醒
+    """
+    
+    # --- 準備資料 ---
+    today = date.today()
+    # 提醒的緩衝期 (例如：提前 1 個月)
+    reminder_buffer_months = 1 
+    reminder_date_threshold = today + relativedelta(months=reminder_buffer_months)
+
+    inspection_reminders = []
+    maintenance_reminders = []
+
+    # 查詢所有「啟用中」的車輛，並預先載入關聯紀錄
+    active_vehicles = db.scalars(
+        select(Vehicle)
+        .where(Vehicle.status == VehicleStatus.active)
+        .options(
+            joinedload(Vehicle.inspections), # 載入檢驗
+            joinedload(Vehicle.maintenance)  # 載入保養
+        )
+    ).unique().all()
+
+    # --- 核心邏輯 ---
+    for vehicle in active_vehicles:
+        
+        # === 1. 法規檢驗 (驗車) 邏輯 ===
+        if vehicle.manufacture_date:
+            vehicle_age = relativedelta(today, vehicle.manufacture_date)
+            vehicle_age_years = vehicle_age.years
+            
+            # 找出最後一次「檢驗」紀錄
+            last_insp = None
+            if vehicle.inspections:
+                last_insp = max(
+                    (insp for insp in vehicle.inspections if insp.inspected_on), 
+                    key=lambda i: i.inspected_on,
+                    default=None
+                )
+            last_insp_date = last_insp.inspected_on if last_insp else None
+            
+            next_due_date = None
+            status = ""
+
+            # 規則 A：自用小客車 (car)
+            if vehicle.vehicle_type == VehicleType.car:
+                if vehicle_age_years < 5:
+                    status = "車齡 < 5 年 (免驗)"
+                elif 5 <= vehicle_age_years < 10:
+                    status = "每年 1 驗"
+                    # 如果有驗過，就抓最後驗車日+1年
+                    if last_insp_date:
+                        next_due_date = last_insp_date + relativedelta(years=1)
+                    # 如果沒驗過 (剛滿5年)，就抓出廠日+5年
+                    else:
+                        next_due_date = vehicle.manufacture_date + relativedelta(years=5)
+                else: # >= 10 年
+                    status = "每年 2 驗"
+                    if last_insp_date:
+                        next_due_date = last_insp_date + relativedelta(months=6)
+                    # 剛滿10年
+                    else:
+                        next_due_date = vehicle.manufacture_date + relativedelta(years=10)
+
+            # 規則 B：機車 (motorcycle, ev_scooter) (排氣檢驗)
+            elif vehicle.vehicle_type in [VehicleType.motorcycle, VehicleType.ev_scooter]:
+                 if vehicle_age_years < 5:
+                    status = "車齡 < 5 年 (免驗)"
+                 else: # >= 5 年
+                    status = "每年 1 驗"
+                    if last_insp_date:
+                        next_due_date = last_insp_date + relativedelta(years=1)
+                    else:
+                        next_due_date = vehicle.manufacture_date + relativedelta(years=5)
+
+            # 規則 C：貨車/廂型車 (truck, van)
+            elif vehicle.vehicle_type in [VehicleType.truck, VehicleType.van]:
+                if vehicle_age_years < 5:
+                    status = "每年 1 驗"
+                    if last_insp_date:
+                        next_due_date = last_insp_date + relativedelta(years=1)
+                    else:
+                        next_due_date = vehicle.manufacture_date + relativedelta(years=1)
+                else: # >= 5 年
+                    status = "每年 2 驗"
+                    if last_insp_date:
+                        next_due_date = last_insp_date + relativedelta(months=6)
+                    else:
+                        next_due_date = vehicle.manufacture_date + relativedelta(years=5)
+            
+            # 如果計算出「應驗日期」，且該日期在「提醒緩衝區」內
+            if next_due_date and next_due_date <= reminder_date_threshold:
+                is_overdue = next_due_date < today
+                if is_overdue:
+                    status = f"已逾期 (應驗日: {next_due_date.strftime('%Y-%m-%d')})"
+                else:
+                    status = f"即將到期 (應驗日: {next_due_date.strftime('%Y-%m-%d')})"
+                
+                inspection_reminders.append(InspectionReminder(
+                    vehicle=vehicle,
+                    status=status,
+                    last_inspection_date=last_insp_date,
+                    next_due_date=next_due_date,
+                    is_overdue=is_overdue
+                ))
+        
+        # === 2. 週期保養 (里程或時間) 邏輯 ===
+        # (我們目前只做「時間」提醒，因為沒有「目前里程」)
+        
+        # 找出最後一次「保養」紀錄
+        last_maint = None
+        if vehicle.maintenance:
+            last_maint = max(
+                (m for m in vehicle.maintenance if m.performed_on and m.category == MaintenanceCategory.maintenance),
+                key=lambda m: m.performed_on,
+                default=None
+            )
+        
+        last_maint_date = last_maint.performed_on if last_maint else None
+        last_maint_km = last_maint.odometer_km if last_maint else None
+        
+        # 規則：預設 6 個月必須保養一次
+        maintenance_time_interval_months = 6
+        
+        # 計算下次保養日 (基於時間)
+        next_maint_due_date = None
+        if last_maint_date:
+            next_maint_due_date = last_maint_date + relativedelta(months=maintenance_time_interval_months)
+        # 如果從未保養過，但車輛已啟用超過6個月
+        elif vehicle.manufacture_date and (today - vehicle.manufacture_date).days > 180:
+             next_maint_due_date = today # 標記為「立即需要」
+        
+        if next_maint_due_date and next_maint_due_date <= reminder_date_threshold:
+            status = "已逾期 (時間)"
+            if not last_maint_date:
+                status = "尚無保養紀錄"
+            
+            maintenance_reminders.append(MaintenanceReminder(
+                vehicle=vehicle,
+                status=status,
+                last_maintenance_date=last_maint_date,
+                last_maintenance_km=last_maint_km
+            ))
+
+    # 排序：逾期的在最上面
+    inspection_reminders.sort(key=lambda x: x.next_due_date if x.next_due_date else today)
+    maintenance_reminders.sort(key=lambda x: x.last_maintenance_date if x.last_maintenance_date else today)
+
+    return templates.TemplateResponse(
+        name="pages/dashboard.html",
+        context={
+            "request": request,
+            "inspection_reminders": inspection_reminders,
+            "maintenance_reminders": maintenance_reminders
+        }
     )
 
 # 新增「車輛管理」的主頁面路由
@@ -264,7 +448,11 @@ async def create_or_update_vehicle(
     status: VehicleStatus = Form(...),
     company: Optional[str] = Form(None),
     make: Optional[str] = Form(None),
-    model: Optional[str] = Form(None)
+    model: Optional[str] = Form(None),
+    
+    # (!!!) 1. 將 date 和 int 改為 str (!!!)
+    manufacture_date: Optional[str] = Form(None),
+    maintenance_interval: Optional[str] = Form(None) 
 ):
     user_uuid = None
     if user_id:
@@ -293,17 +481,19 @@ async def create_or_update_vehicle(
     vehicle.make = make
     vehicle.model = model
     
-    # 1. 補上缺失的 commit
+    # (!!!) 2. 手動轉換 str (!!!)
+    vehicle.manufacture_date = date.fromisoformat(manufacture_date) if manufacture_date else None
+    vehicle.maintenance_interval = int(maintenance_interval) if maintenance_interval else None
+    
     try:
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
     
-    # 2. 補上缺失的 HX-Trigger
     return Response(
         status_code=200,
-        headers={"HX-Trigger": "refreshVehicleList"}
+        headers={"HX-Trigger": "refreshVehicleList, refreshVehicleDetailPage"} # (!!!) 順便觸發詳情頁刷新 (!!!)
     )
 
 @app.delete("/vehicle/{vehicle_id}/delete")
@@ -627,68 +817,67 @@ async def create_or_update_maintenance(
     maint_id: Optional[UUID] = None,
     vehicle_id: Optional[UUID] = Form(None),
     category: MaintenanceCategory = Form(...),
-    performed_on: Optional[date] = Form(None),
-    return_date: Optional[date] = Form(None),
+    
+    # (!!!) 1. 將 date, int, Decimal 改為 str (!!!)
+    performed_on: Optional[str] = Form(None),
+    return_date: Optional[str] = Form(None),
     user_id: Optional[str] = Form(None),
     handler_id: Optional[str] = Form(None),
     vendor: Optional[str] = Form(None),
-    odometer_km: Optional[int] = Form(None),
-    service_target_km: Optional[int] = Form(None),
-    amount: Optional[Decimal] = Form(None),
+    odometer_km: Optional[str] = Form(None),
+    service_target_km: Optional[str] = Form(None),
+    amount: Optional[str] = Form(None),
+    
     is_reconciled: bool = Form(False),
     notes: Optional[str] = Form(None),
     handler_notes: Optional[str] = Form(None)
 ):
     """ 處理保養紀錄的「新增」或「儲存」 """
 
-    # 轉換 UUID
     user_uuid = UUID(user_id) if user_id else None
     handler_uuid = UUID(handler_id) if handler_id else None
 
     if maint_id:
-        # 編輯模式
         maint = db.get(Maintenance, maint_id)
         if not maint:
             raise HTTPException(status_code=404, detail="Maintenance record not found")
     else:
         if not vehicle_id:
             raise HTTPException(status_code=400, detail="必須選擇一輛車")
-        # 新增模式
         maint = Maintenance()
         maint.vehicle_id = vehicle_id
         db.add(maint)
 
-    # 更新欄位
+    # (!!!) 2. 手動轉換 str (!!!)
     maint.category = category
-    maint.performed_on = performed_on
-    maint.return_date = return_date
+    maint.performed_on = date.fromisoformat(performed_on) if performed_on else None
+    maint.return_date = date.fromisoformat(return_date) if return_date else None
     maint.user_id = user_uuid
     maint.handler_id = handler_uuid
     maint.vendor = vendor
-    maint.odometer_km = odometer_km
-    maint.service_target_km = service_target_km
-    maint.amount = amount
+    maint.odometer_km = int(odometer_km) if odometer_km else None
+    maint.service_target_km = int(service_target_km) if service_target_km else None
+    maint.amount = Decimal(amount) if amount else None # <-- 轉為 Decimal
     maint.is_reconciled = is_reconciled
     maint.notes = notes
     maint.handler_notes = handler_notes
 
     try:
-        # 如果有填金額，自動建立一筆費用
-        if amount and amount > 0:
+        # (!!!) 3. 檢查轉換後的 amount (!!!)
+        if maint.amount and maint.amount > 0:
             fee_type = FeeType.maintenance_service
             if category == MaintenanceCategory.repair:
                 fee_type = FeeType.repair_parts
-
-            # 費用請款人優先抓「經手人」，其次抓「當時使用人」
+            
             fee_user_id = handler_uuid if handler_uuid else user_uuid
 
             new_fee = Fee(
                 vehicle_id=maint.vehicle_id,
                 user_id=fee_user_id,
-                receive_date=performed_on, 
-                request_date=performed_on, 
+                receive_date=maint.performed_on, # <-- 
+                request_date=maint.performed_on, # <--
                 fee_type=fee_type,
-                amount=amount,
+                amount=maint.amount, # <--
                 is_paid=is_reconciled, 
                 notes=f"自動建立 - {MAINTENANCE_CATEGORY_MAP.get(category.value, category.value)}: {notes or ''}"
             )
@@ -699,8 +888,6 @@ async def create_or_update_maintenance(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    # 觸發保養列表刷新 (用於車輛詳情頁)
-    # 觸發全域保養列表刷新 (用於新頁面)
     return Response(
         status_code=200,
         headers={"HX-Trigger": "refreshMaintenanceList, refreshMaintenanceListAll"}
@@ -888,22 +1075,27 @@ async def create_or_update_inspection(
     request: Request,
     db: Session = Depends(get_db),
     insp_id: Optional[UUID] = None,
-    # --- (!!!) 接收表單欄位 (!!!) ---
     vehicle_id: Optional[UUID] = Form(None), 
     kind: InspectionKind = Form(...),
-    notification_date: Optional[date] = Form(None),
-    deadline_date: Optional[date] = Form(None),
-    inspected_on: Optional[date] = Form(None),
-    return_date: Optional[date] = Form(None),
+    
+    # (!!!) 1. 確認所有 date 都是 str (!!!)
+    notification_date: Optional[str] = Form(None),
+    deadline_date: Optional[str] = Form(None),
+    inspected_on: Optional[str] = Form(None),
+    return_date: Optional[str] = Form(None),
+    next_due_on: Optional[str] = Form(None),
+    
     user_id: Optional[str] = Form(None),
     handler_id: Optional[str] = Form(None),
-    amount: Optional[Decimal] = Form(None),
+    
+    # (!!!) 2. 將 Decimal 也改為 str (!!!)
+    amount: Optional[str] = Form(None),
+    
     is_reconciled: bool = Form(False),
     result: Optional[str] = Form(None),
     notes: Optional[str] = Form(None),
     handler_notes: Optional[str] = Form(None),
-    notification_source: Optional[str] = Form(None),
-    next_due_on: Optional[date] = Form(None)
+    notification_source: Optional[str] = Form(None)
 ):
     """ 處理檢驗紀錄的「新增」或「儲存」 """
 
@@ -911,46 +1103,47 @@ async def create_or_update_inspection(
     handler_uuid = UUID(handler_id) if handler_id else None
 
     if insp_id:
-        # 編輯模式
         insp = db.get(Inspection, insp_id)
         if not insp:
             raise HTTPException(status_code=404, detail="Inspection record not found")
     else:
-        # 新增模式
         if not vehicle_id:
              raise HTTPException(status_code=400, detail="必須選擇一輛車")
         insp = Inspection()
         insp.vehicle_id = vehicle_id
         db.add(insp)
 
-    # 更新欄位
+    # (!!!) 3. 手動轉換所有 str (!!!)
     insp.kind = kind
-    insp.notification_date = notification_date
-    insp.deadline_date = deadline_date
-    insp.inspected_on = inspected_on
-    insp.return_date = return_date
+    insp.notification_date = date.fromisoformat(notification_date) if notification_date else None
+    insp.deadline_date = date.fromisoformat(deadline_date) if deadline_date else None
+    insp.inspected_on = date.fromisoformat(inspected_on) if inspected_on else None
+    insp.return_date = date.fromisoformat(return_date) if return_date else None
+    insp.next_due_on = date.fromisoformat(next_due_on) if next_due_on else None
     insp.user_id = user_uuid
     insp.handler_id = handler_uuid
-    insp.amount = amount
+    insp.amount = Decimal(amount) if amount else None # <-- 轉換 Decimal
     insp.is_reconciled = is_reconciled
     insp.result = result
     insp.notes = notes
     insp.handler_notes = handler_notes
     insp.notification_source = notification_source
-    insp.next_due_on = next_due_on
 
     try:
-        # (!!!) 自動建立費用 (!!!)
-        if amount and amount > 0:
+        # (!!!) 4. 檢查轉換後的 amount (!!!)
+        if insp.amount and insp.amount > 0:
             fee_user_id = handler_uuid if handler_uuid else user_uuid
-
+            
+            # (!!!) 5. 確保日期變數是轉換後的 (!!!)
+            receive_date_obj = insp.inspected_on or insp.notification_date
+            
             new_fee = Fee(
                 vehicle_id=insp.vehicle_id,
                 user_id=fee_user_id,
-                receive_date=inspected_on or notification_date,
-                request_date=inspected_on or notification_date,
+                receive_date=receive_date_obj,
+                request_date=receive_date_obj,
                 fee_type=FeeType.inspection_fee,
-                amount=amount,
+                amount=insp.amount, # <--
                 is_paid=is_reconciled,
                 notes=f"自動建立 - 檢驗費: {INSPECTION_KIND_MAP.get(kind.value, kind.value)}"
             )
@@ -961,7 +1154,6 @@ async def create_or_update_inspection(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    # 觸發列表刷新
     return Response(
         status_code=200,
         headers={"HX-Trigger": "refreshInspectionList, refreshInspectionListAll"}
@@ -1150,15 +1342,16 @@ async def create_or_update_fee(
     request: Request,
     db: Session = Depends(get_db),
     fee_id: Optional[UUID] = None,
-    # --- 接收表單欄位 ---
-    # 費用模型的 vehicle_id 和 user_id 允許為 None
     vehicle_id: Optional[str] = Form(None), 
     user_id: Optional[str] = Form(None), 
 
     fee_type: FeeType = Form(...),
-    amount: Optional[Decimal] = Form(None),
-    receive_date: Optional[date] = Form(None),
-    request_date: Optional[date] = Form(None),
+    
+    # (!!!) 1. 將 date 和 Decimal 改為 str (!!!)
+    amount: Optional[str] = Form(None),
+    receive_date: Optional[str] = Form(None),
+    request_date: Optional[str] = Form(None),
+    
     is_paid: bool = Form(False),
     invoice_number: Optional[str] = Form(None),
     notes: Optional[str] = Form(None)
@@ -1169,22 +1362,20 @@ async def create_or_update_fee(
     user_uuid = UUID(user_id) if user_id else None
 
     if fee_id:
-        # 編輯模式
         fee = db.get(Fee, fee_id)
         if not fee:
             raise HTTPException(status_code=404, detail="Fee record not found")
     else:
-        # 新增模式
         fee = Fee()
         db.add(fee)
 
-    # 更新欄位
+    # (!!!) 2. 手動轉換 str (!!!)
     fee.vehicle_id = vehicle_uuid
     fee.user_id = user_uuid
     fee.fee_type = fee_type
-    fee.amount = amount
-    fee.receive_date = receive_date
-    fee.request_date = request_date
+    fee.amount = Decimal(amount) if amount else None
+    fee.receive_date = date.fromisoformat(receive_date) if receive_date else None
+    fee.request_date = date.fromisoformat(request_date) if request_date else None
     fee.is_paid = is_paid
     fee.invoice_number = invoice_number
     fee.notes = notes
@@ -1315,7 +1506,10 @@ async def create_or_update_asset_log(
     asset_type: AssetType = Form(...),
     description: Optional[str] = Form(None),
     status: AssetStatus = Form(...),
-    log_date: date = Form(...),
+    
+    # (!!!) 1. 將 date 改為 str (!!!)
+    log_date: str = Form(...), # (注意: 這個是必填 'required'，所以不是 Optional)
+    
     notes: Optional[str] = Form(None)
 ):
     """ 處理資產日誌的「新增」或「儲存」 """
@@ -1331,12 +1525,12 @@ async def create_or_update_asset_log(
         log.vehicle_id = vehicle_id
         db.add(log)
 
-    # 更新欄位
+    # (!!!) 2. 手動轉換 str (!!!)
     log.user_id = user_uuid
     log.asset_type = asset_type
     log.description = description
     log.status = status
-    log.log_date = log_date
+    log.log_date = date.fromisoformat(log_date) if log_date else None
     log.notes = notes
 
     try:
@@ -1402,9 +1596,12 @@ async def create_or_update_disposal(
     db: Session = Depends(get_db),
     # --- 接收表單欄位 ---
     user_id: Optional[str] = Form(None), # 原使用人
-    disposed_on: date = Form(...),
-    notification_date: Optional[date] = Form(None),
-    final_mileage: Optional[int] = Form(None),
+    
+    # (!!!) 1. 將 date 和 int 改為 str (!!!)
+    disposed_on: str = Form(...), # (必填)
+    notification_date: Optional[str] = Form(None),
+    final_mileage: Optional[str] = Form(None),
+    
     reason: Optional[str] = Form(None)
 ):
     """ 儲存報廢紀錄，並更新車輛狀態 """
@@ -1421,11 +1618,11 @@ async def create_or_update_disposal(
         disposal.vehicle_id = vehicle_id
         db.add(disposal)
 
-    # 更新欄位
+    # (!!!) 2. 手動轉換 str (!!!)
     disposal.user_id = UUID(user_id) if user_id else None
-    disposal.disposed_on = disposed_on
-    disposal.notification_date = notification_date
-    disposal.final_mileage = final_mileage
+    disposal.disposed_on = date.fromisoformat(disposed_on) if disposed_on else None
+    disposal.notification_date = date.fromisoformat(notification_date) if notification_date else None
+    disposal.final_mileage = int(final_mileage) if final_mileage else None
     disposal.reason = reason
 
     # (!!!) 重要：同時更新車輛狀態 (!!!)
@@ -1437,7 +1634,6 @@ async def create_or_update_disposal(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    # 觸發「車輛列表」和「車輛詳情頁」刷新
     return Response(
         status_code=200,
         headers={

@@ -52,7 +52,7 @@
 
         <div>
           <label for="result" class="block text-sm font-medium text-gray-700">結果</label>
-          <input type="text" name="result" id="result" value="{{ insp.result if insp else '' }}"
+          <input type="text" name="result" id="result" value="{{ (insp.result or '') if insp else '' }}"
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
 
@@ -137,7 +137,7 @@
 
         <div>
           <label for="amount" class="block text-sm font-medium text-gray-700">金額 (填入會自動產生費用單)</label>
-          <input type="number" step="0.01" name="amount" id="amount" value="{{ insp.amount if insp else '' }}"
+          <input type="number" step="0.01" name="amount" id="amount" value="{{ (insp.amount or '') if insp else '' }}"
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
 
@@ -152,14 +152,14 @@
             <label for="notes" class="block text-sm font-medium text-gray-700">檢驗細節(附註)</label>
             <textarea name="notes" id="notes" rows="2"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >{{ insp.notes if insp else '' }}</textarea>
+            >{{ (insp.notes or '') if insp else '' }}</textarea>
         </div>
 
         <div class="col-span-1 md:col-span-2">
             <label for="handler_notes" class="block text-sm font-medium text-gray-700">聯絡事宜(備註)</label>
             <textarea name="handler_notes" id="handler_notes" rows="2"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >{{ insp.handler_notes if insp else '' }}</textarea>
+            >{{ (insp.handler_notes or '') if insp else '' }}</textarea>
         </div>
 
       </div>

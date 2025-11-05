@@ -27,6 +27,7 @@
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">廠商</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">金額</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">當時里程</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">保養里程</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">使用人</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">備註</th>
         </tr>
@@ -34,7 +35,7 @@
       <tbody class="bg-white divide-y divide-gray-200">
         {% if not maintenance_records %}
           <tr>
-            <td colspan="8" class="px-4 py-4 text-center text-sm text-gray-500">
+            <td colspan="9" class="px-4 py-4 text-center text-sm text-gray-500">
               尚無保養維修紀錄
             </td>
           </tr>
@@ -84,9 +85,14 @@
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ "NT$ {:,.0f}".format(record.amount) if record.amount else '' }}
           </td>
-          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-right cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ "{:,.0f} km".format(record.odometer_km) if record.odometer_km else '' }}
           </td>
+          
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-right cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+            {{ "{:,.0f} km".format(record.service_target_km) if record.service_target_km else '' }}
+          </td>
+          
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ record.user.name if record.user else '' }}
           </td>

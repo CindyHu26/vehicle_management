@@ -68,7 +68,7 @@
 
         <div class="col-span-2">
           <label for="company" class="block text-sm font-medium text-gray-700">所屬公司/人員</label>
-          <input type="text" name="company" id="company" value="{{ vehicle.company if vehicle else '' }}"
+          <input type="text" name="company" id="company" value="{{ (vehicle.company or '') if vehicle else '' }}"
                  list="company-list" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
           
           <datalist id="company-list">
@@ -80,12 +80,27 @@
         
         <div>
           <label for="make" class="block text-sm font-medium text-gray-700">品牌</label>
-          <input type="text" name="make" id="make" value="{{ vehicle.make if vehicle else '' }}"
+          <input type="text" name="make" id="make" value="{{ (vehicle.make or '') if vehicle else '' }}"
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
         <div>
           <label for="model" class="block text-sm font-medium text-gray-700">型號</label>
-          <input type="text" name="model" id="model" value="{{ vehicle.model if vehicle else '' }}"
+          <input type="text" name="model" id="model" value="{{ (vehicle.model or '') if vehicle else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="manufacture_date" class="block text-sm font-medium text-gray-700">出廠年月</label>
+          <input type="date" name="manufacture_date" id="manufacture_date" 
+                 value="{{ vehicle.manufacture_date.strftime('%Y-%m-%d') if vehicle and vehicle.manufacture_date else '' }}"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+          <label for="maintenance_interval" class="block text-sm font-medium text-gray-700">保養基準 (km)</label>
+          <input type="number" name="maintenance_interval" id="maintenance_interval" 
+                 value="{{ (vehicle.maintenance_interval or '') if vehicle else '' }}"
+                 placeholder="例如: 5000"
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
 
