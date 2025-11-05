@@ -72,19 +72,19 @@
           </td>
 
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.inspected_on.strftime('%Y-%m-%d') if record.inspected_on else 'N/A' }}
+            {{ record.inspected_on.strftime('%Y-%m-%d') if record.inspected_on else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ inspection_kind_map.get(record.kind.value, record.kind.value) }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.next_due_on.strftime('%Y-%m-%d') if record.next_due_on else 'N/A' }}
+            {{ record.next_due_on.strftime('%Y-%m-%d') if record.next_due_on else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}
+            {{ "NT$ {:,.0f}".format(record.amount) if record.amount else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.handler.name if record.handler else 'N/A' }}
+            {{ record.handler.name if record.handler else '' }}
           </td>
           <td class="px-4 py-4 text-sm text-gray-700 truncate cursor-pointer" style="max-width: 200px;" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ record.notes or '' }}

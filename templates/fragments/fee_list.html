@@ -72,16 +72,16 @@
           </td>
 
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800 cursor-pointer" hx-get="/fee/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.receive_date.strftime('%Y-%m-%d') if record.receive_date else 'N/A' }}
+            {{ record.receive_date.strftime('%Y-%m-%d') if record.receive_date else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/fee/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.user.name if record.user else 'N/A' }}
+            {{ record.user.name if record.user else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/fee/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ fee_type_map.get(record.fee_type.value, record.fee_type.value) }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-right cursor-pointer" hx-get="/fee/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}
+            {{ "NT$ {:,.0f}".format(record.amount) if record.amount else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-center cursor-pointer" hx-get="/fee/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ "✔️" if record.is_paid else "❌" }}

@@ -73,22 +73,22 @@
           </td>
 
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.performed_on.strftime('%Y-%m-%d') if record.performed_on else 'N/A' }}
+            {{ record.performed_on.strftime('%Y-%m-%d') if record.performed_on else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ maintenance_category_map.get(record.category.value, record.category.value) }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.vendor or 'N/A' }}
+            {{ record.vendor or '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}
+            {{ "NT$ {:,.0f}".format(record.amount) if record.amount else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ "{:,.0f} km".format(record.odometer_km) if record.odometer_km else 'N/A' }}
+            {{ "{:,.0f} km".format(record.odometer_km) if record.odometer_km else '' }}
           </td>
           <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-            {{ record.user.name if record.user else 'N/A' }}
+            {{ record.user.name if record.user else '' }}
           </td>
           <td class="px-4 py-4 text-sm text-gray-700 truncate cursor-pointer" style="max-width: 200px;" hx-get="/maintenance/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
             {{ record.notes or '' }}

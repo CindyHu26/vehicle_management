@@ -26,7 +26,7 @@
       
       {% for record in inspection_records %}
       <tr class="hover:bg-gray-50 text-sm">
-
+        
         <td class="px-3 py-3 whitespace-nowrap text-left font-medium">
           <button
             class="text-green-600 hover:text-green-900"
@@ -57,31 +57,31 @@
         </td>
 
         <td class="px-3 py-3 whitespace-nowrap font-medium text-blue-600 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-          {{ record.vehicle.plate_no if record.vehicle else 'N/A' }}
+          {{ record.vehicle.plate_no if record.vehicle else '' }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {{ inspection_kind_map.get(record.kind.value, record.kind.value) }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-900 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-          {{ record.inspected_on.strftime('%Y-%m-%d') if record.inspected_on else 'N/A' }}
+          {{ record.inspected_on.strftime('%Y-%m-%d') if record.inspected_on else '' }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-          {{ record.next_due_on.strftime('%Y-%m-%d') if record.next_due_on else 'N/A' }}
+          {{ record.next_due_on.strftime('%Y-%m-%d') if record.next_due_on else '' }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-right cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-          {{ "NT$ {:,.0f}".format(record.amount) if record.amount else 'N/A' }}
+          {{ "NT$ {:,.0f}".format(record.amount) if record.amount else '' }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-700 text-center cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {{ "✔️" if record.is_reconciled else "❌" }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-          {{ record.handler.name if record.handler else 'N/A' }}
+          {{ record.handler.name if record.handler else '' }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-          {{ record.notification_date.strftime('%Y-%m-%d') if record.notification_date else 'N/A' }}
+          {{ record.notification_date.strftime('%Y-%m-%d') if record.notification_date else '' }}
         </td>
         <td class="px-3 py-3 whitespace-nowrap text-gray-700 cursor-pointer" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
-          {{ record.deadline_date.strftime('%Y-%m-%d') if record.deadline_date else 'N/A' }}
+          {{ record.deadline_date.strftime('%Y-%m-%d') if record.deadline_date else '' }}
         </td>
         <td class="px-3 py-3 text-gray-700 truncate cursor-pointer" style="max-width: 150px;" hx-get="/inspection/{{ record.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {{ record.notes or '' }}

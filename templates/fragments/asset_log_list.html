@@ -21,13 +21,13 @@
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">紀錄日期</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">財產類型</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">描述</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">保管人</th>
           <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">備註</th>
-          <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
@@ -41,19 +41,19 @@
 
         {% for log in asset_logs %}
         <tr class="hover:bg-gray-50">
-          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800">{{ log.log_date.strftime('%Y-%m-%d') if log.log_date else 'N/A' }}</td>
-          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-            {{ asset_type_map.get(log.asset_type.value, log.asset_type.value) }}
-          </td>
-          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ log.description or '' }}</td>
-          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-            {{ asset_status_map.get(log.status.value, log.status.value) }}
-          </td>
-          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ log.user.name if log.user else 'N/A' }}</td>
-          <td class="px-4 py-4 text-sm text-gray-700 truncate" style="max-width: 200px;">{{ log.notes or '' }}</td>
-          <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+
+          <td class="px-4 py-4 whitespace-nowrap text-left text-sm font-medium">
             <button
-              class="text-blue-600 hover:text-blue-900"
+              class="text-green-600 hover:text-green-900"
+              hx-get="/attachments/manage/asset_log/{{ log.id }}"
+              hx-target="#modal-container"
+              hx-swap="beforeend"
+              title="附件"
+            >
+              附件
+            </button>
+            <button
+              class="text-blue-600 hover:text-blue-900 ml-4"
               hx-get="/asset-log/{{ log.id }}/edit"
               hx-target="#modal-container"
               hx-swap="beforeend"
@@ -69,6 +69,25 @@
             >
               刪除
             </button>
+          </td>
+
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-800 cursor-pointer" hx-get="/asset-log/{{ log.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+            {{ log.log_date.strftime('%Y-%m-%d') if log.log_date else '' }}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/asset-log/{{ log.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+            {{ asset_type_map.get(log.asset_type.value, log.asset_type.value) }}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/asset-log/{{ log.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+            {{ log.description or '' }}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/asset-log/{{ log.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+            {{ asset_status_map.get(log.status.value, log.status.value) }}
+          </td>
+          <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer" hx-get="/asset-log/{{ log.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+            {{ log.user.name if log.user else '' }}
+          </td>
+          <td class="px-4 py-4 text-sm text-gray-700 truncate cursor-pointer" style="max-width: 200px;" hx-get="/asset-log/{{ log.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
+            {{ log.notes or '' }}
           </td>
         </tr>
         {% endfor %}
