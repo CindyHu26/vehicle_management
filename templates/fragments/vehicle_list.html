@@ -52,25 +52,7 @@
                 {% if current_sort_by == "vehicle_type" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
               </th>
               
-              <th 
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                hx-get="/vehicles-list"
-                hx-vals='{
-                  "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
-                  "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
-                  "filter_status": "{{ query_params.get("filter_status", "") }}",
-                  "sort_by": "status",
-                  "sort_order": "{% if current_sort_by == "status" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
-                }'
-                hx-target="#vehicle-list-container" hx-swap="innerHTML"
-              >
-                狀態
-                {% if current_sort_by == "status" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
-              </th>
-              
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">型號</th>
-              
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">保養週期</th>
               
               <th 
                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
@@ -87,8 +69,26 @@
                 出廠日期
                 {% if current_sort_by == "manufacture_date" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
               </th>
+              
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">保養基準</th>
 
-              </tr>
+              <th 
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                hx-get="/vehicles-list"
+                hx-vals='{
+                  "filter_user_id": "{{ query_params.get("filter_user_id", "") }}",
+                  "filter_vehicle_type": "{{ query_params.get("filter_vehicle_type", "") }}",
+                  "filter_status": "{{ query_params.get("filter_status", "") }}",
+                  "sort_by": "status",
+                  "sort_order": "{% if current_sort_by == "status" and current_sort_order == "asc" %}desc{% else %}asc{% endif %}"
+                }'
+                hx-target="#vehicle-list-container" hx-swap="innerHTML"
+              >
+                狀態
+                {% if current_sort_by == "status" %}{{ "🔼" if current_sort_order == "asc" else "🔽" }}{% endif %}
+              </th>
+              
+            </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200" id="vehicle-table-body">
           
@@ -130,6 +130,16 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                   {{ vehicle_type_map.get(vehicle.vehicle_type.value, vehicle.vehicle_type.value) }}
               </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ vehicle.model or '' }}</td>
+              
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                {{ vehicle.manufacture_date.strftime('%Y-%m-%d') if vehicle.manufacture_date else '' }}
+              </td>
+              
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
+                {{ "{:,.0f} km".format(vehicle.maintenance_interval) if vehicle.maintenance_interval else '' }}
+              </td>
+
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                   {% if vehicle.status.value == 'active' %}
                       <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">啟用中</span>
@@ -139,17 +149,8 @@
                       <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ vehicle.status.value }}</span>
                   {% endif %}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ vehicle.model or '' }}</td>
               
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                {{ "{:,.0f} km".format(vehicle.maintenance_interval) if vehicle.maintenance_interval else '' }}
-              </td>
-              
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                {{ vehicle.manufacture_date.strftime('%Y-%m-%d') if vehicle.manufacture_date else '' }}
-              </td>
-
-              </tr>
+            </tr>
           {% endfor %}
       </tbody>
   </table>
