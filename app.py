@@ -1707,8 +1707,11 @@ async def get_attachments_manager(
 async def upload_attachment(
     request: Request,
     db: Session = Depends(get_db),
-    entity_type: AttachmentEntity = Form(...),
-    entity_id: UUID = Form(...),
+    
+    # (!!!) 1. 將型別改為 str (!!!)
+    entity_type: str = Form(...),
+    entity_id: str = Form(...),
+    
     description: Optional[str] = Form(None),
     file: UploadFile = File(...)
 ):
@@ -1717,10 +1720,24 @@ async def upload_attachment(
     if not file:
         raise HTTPException(status_code=400, detail="沒有提供檔案")
 
+    # (!!!) 2. 手動驗證和轉換 (!!!)
+    try:
+        entity_type_enum = AttachmentEntity(entity_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"無效的 entity_type: {entity_type}")
+
+    try:
+        entity_id_uuid = UUID(entity_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"無效的 entity_id 格式: {entity_id}")
+    
+    # (!!!) 3. 處理空字串 (!!!)
+    description_to_save = description if description else None
+
     # 產生一個安全的檔案名稱
     # 格式: [entity_id]_[uuid].[extension]
     ext = Path(file.filename).suffix
-    safe_filename = f"{entity_id}_{uuid4()}{ext}"
+    safe_filename = f"{entity_id_uuid}_{uuid4()}{ext}" # (使用 uuid 物件)
     file_path = UPLOAD_PATH / safe_filename
 
     # 儲存實體檔案
@@ -1734,11 +1751,12 @@ async def upload_attachment(
 
     # 建立資料庫紀錄
     new_attachment = Attachment(
-        entity_type=entity_type,
-        entity_id=entity_id,
-        file_name=file.filename, # 儲存原始檔名
-        file_path=f"/uploads/{safe_filename}", # 儲存相對 URL 路徑
-        description=description
+        # (!!!) 4. 使用轉換後的值 (!!!)
+        entity_type=entity_type_enum,
+        entity_id=entity_id_uuid,
+        file_name=file.filename, 
+        file_path=f"/uploads/{safe_filename}", 
+        description=description_to_save
     )
     db.add(new_attachment)
 
@@ -1746,7 +1764,6 @@ async def upload_attachment(
         db.commit()
     except Exception as e:
         db.rollback()
-        # (可選) 嘗試刪除已上傳的實體檔案
         if file_path.exists():
             file_path.unlink()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")

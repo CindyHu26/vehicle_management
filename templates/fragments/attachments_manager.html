@@ -58,7 +58,8 @@
         hx-on:htmx:afterOnLoad="this.reset()" 
         class="space-y-4 p-4 border rounded-md bg-gray-50"
       >
-        <input type="hidden" name="entity_type" value="{{ entity_type }}">
+        <input type="hidden" name="entity_type" value="{{ entity_type.value }}">
+        
         <input type="hidden" name="entity_id" value="{{ entity_id }}">
         
         <div>
