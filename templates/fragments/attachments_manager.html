@@ -94,10 +94,9 @@
       <form
         hx-post="/attachment/upload"
         hx-encoding="multipart/form-data"
-        hx-on:htmx:afterOnLoad="this.reset()" 
         
         hx-swap="none"
-        hx-on:htmx:afterOnLoad="showSuccessMessage(this)"
+        hx-on:htmx:afterOnLoad="showSuccessMessage(this); this.reset()"
         class="space-y-4 p-4 border rounded-md bg-gray-50"
       >
         <input type="hidden" name="entity_type" value="{{ entity_type.value }}">

@@ -28,7 +28,6 @@
         hx-post="/parking-spot/new"
       {% endif %}
       hx-swap="none"
-      hx-on:htmx:afterOnLoad="this.closest('.fixed').remove()"
       hx-on:htmx:afterOnLoad="showSuccessMessage(this)"
     >
       <div class="space-y-4">
