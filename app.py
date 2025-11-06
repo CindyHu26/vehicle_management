@@ -29,6 +29,7 @@ from models import (
     ParkingLot, ParkingSpot, ParkingAssignmentType
 )
 from config import settings, UPLOAD_PATH
+import json
 
 class InspectionReminder(BaseModel):
     vehicle: Vehicle
@@ -498,10 +499,18 @@ async def create_or_update_vehicle(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
     
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshVehicleList, refreshVehicleDetailPage"} # (!!!) 順便觸發詳情頁刷新 (!!!)
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "車輛儲存成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshVehicleList": True,
+            "refreshVehicleDetailPage": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.delete("/vehicle/{vehicle_id}/delete")
 async def delete_vehicle(
@@ -644,10 +653,17 @@ async def create_or_update_employee(
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
     # 觸發「員工」列表刷新
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshEmployeeList"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "員工儲存成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshEmployeeList": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.delete("/employee/{employee_id}/delete")
 async def delete_employee(
@@ -903,10 +919,18 @@ async def create_or_update_maintenance(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshMaintenanceList, refreshMaintenanceListAll"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "保養紀錄儲存成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshMaintenanceList": True,
+            "refreshMaintenanceListAll": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.delete("/maintenance/{maint_id}/delete")
 async def delete_maintenance(
@@ -1177,10 +1201,18 @@ async def create_or_update_inspection(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshInspectionList, refreshInspectionListAll"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "檢驗紀錄儲存成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshInspectionList": True,
+            "refreshInspectionListAll": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.delete("/inspection/{insp_id}/delete")
 async def delete_inspection(
@@ -1418,10 +1450,18 @@ async def create_or_update_fee(
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
     # 觸發列表刷新
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshFeeList, refreshFeeListAll"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "費用儲存成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshFeeList": True,
+            "refreshFeeListAll": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.delete("/fee/{fee_id}/delete")
 async def delete_fee(
@@ -1570,10 +1610,17 @@ async def create_or_update_asset_log(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshAssetLogList"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "資產日誌儲存成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshAssetLogList": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.delete("/asset-log/{log_id}/delete")
 async def delete_asset_log(
@@ -1799,11 +1846,17 @@ async def upload_attachment(
             file_path.unlink()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    # 觸發附件列表刷新
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshAttachmentsList"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "附件上傳成功！", 
+                "level": "success",
+                "closeModal": False  # (!!!) 附件管理彈窗保持開啟 (!!!)
+            },
+            "refreshAttachmentsList": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.delete("/attachment/{attachment_id}/delete")
 async def delete_attachment(
@@ -2061,10 +2114,17 @@ async def create_or_update_parking_assignment(
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
     # 觸發列表刷新
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshParkingSpotsList"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "車位指派成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshParkingSpotsList": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.post("/parking-spot/{spot_id}/clear")
 async def clear_parking_assignment(
@@ -2127,11 +2187,17 @@ async def create_parking_lot(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    # (!!!) 觸發「停車場管理頁面」刷新 (!!!)
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshParkingManagementPage"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "停車場新增成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshParkingManagementPage": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 @app.get("/parking-spot/new")
 async def get_parking_spot_form(
@@ -2189,11 +2255,17 @@ async def create_parking_spot(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
-    # (!!!) 觸發「停車位列表」刷新 (!!!)
-    return Response(
-        status_code=200,
-        headers={"HX-Trigger": "refreshParkingSpotsList"}
-    )
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "車位新增成功！", 
+                "level": "success",
+                "closeModal": True
+            },
+            "refreshParkingSpotsList": True
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 # --- 健康檢查 ---
 @app.get("/health")

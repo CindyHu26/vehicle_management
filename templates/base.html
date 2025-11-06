@@ -190,46 +190,6 @@
     document.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
     </script>
     
-    <script>
-       /**
-       * 僅顯示成功訊息，2 秒後自動清除。
-       * (用於「附件管理」，彈窗需要保持開啟)
-       */
-      function showSuccessMessage(formElement) {
-        const statusEl = formElement.querySelector('.save-status');
-        if (!statusEl) return;
-
-        statusEl.innerText = "儲存成功!";
-        
-        setTimeout(() => {
-          if (statusEl) {
-            statusEl.innerText = "";
-          }
-        }, 2000);
-      }
-
-      /**
-       * 顯示成功訊息，並在 2 秒後自動關閉 Modal 彈窗。
-       * (用於所有主要的「新增/編輯」表單)
-       */
-      function showSuccessAndClose(formElement) {
-        const statusEl = formElement.querySelector('.save-status');
-        if (!statusEl) return;
-
-        statusEl.innerText = "儲存成功!";
-        
-        const modal = formElement.closest('.fixed');
-
-        setTimeout(() => {
-          if (statusEl) {
-            statusEl.innerText = "";
-          }
-          if (modal) {
-            modal.remove();
-          }
-        }, 2000); // 延遲 2 秒，讓使用者看得到訊息
-      }
-    </script>
     <!-- 顯示 Toast 的容器 -->
     <div id="toast-root" class="fixed top-4 right-4 z-[1000] space-y-2"></div>
     <script>
@@ -237,20 +197,28 @@
         const root = document.getElementById('toast-root'); if(!root) return;
         const el = document.createElement('div');
         const map = {success:'bg-green-600', info:'bg-blue-600', warning:'bg-yellow-600', danger:'bg-red-600'};
-        el.className = (map[level]||map.success) + ' text-white px-4 py-2 rounded-lg shadow';
+        el.className = (map[level]||map.success) + ' text-white px-4 py-2 rounded-lg shadow-lg';
         el.textContent = msg || '完成';
         root.appendChild(el);
         setTimeout(()=>el.remove(), timeout);
     }
 
-    // 後端回傳 HX-Trigger: { "showToast": { "message": "...", "level": "success" }, "refreshParkingSpotsList": true }
+    /**
+     * (!!!) 關鍵的監聽器 (!!!)
+     * 監聽從伺服器 (HX-Trigger) 發來的 "showToast" 事件
+     */
     document.body.addEventListener('showToast', (e)=>{
-        const d = e.detail || {};
-        showToast(d.message, d.level);
-        // 成功後：關掉任何打開的 modal（你的 modal 外層 class 有 .fixed）
-        document.querySelectorAll('.fixed.inset-0').forEach(n=>n.remove());
-        // 視需要刷新列表／頁面區塊（你已經在列表容器用過 refreshParkingSpotsList）
-        htmx.trigger(document.body, 'refreshParkingSpotsList');
+        const detail = e.detail || {};
+        
+        // 1. 顯示 Toast 訊息
+        showToast(detail.message, detail.level);
+        
+        // 2. 檢查伺服器是否要求「關閉彈窗」
+        // (這樣附件管理才能設定 false, 其他表單設定 true)
+        if (detail.closeModal === true) {
+            // 找到所有開啟的 modal (用 .fixed) 並移除
+            document.querySelectorAll('.fixed.inset-0').forEach(n => n.remove());
+        }
     });
     </script>
 
