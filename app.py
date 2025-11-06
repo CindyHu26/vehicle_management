@@ -2156,30 +2156,57 @@ async def clear_parking_assignment(
     )
 
 @app.get("/parking-lot/new")
+@app.get("/parking-lot/{lot_id}/edit")  # (!!!) 1. 加入這行 (!!!)
 async def get_parking_lot_form(
     request: Request,
+    lot_id: Optional[UUID] = None,  # (!!!) 2. 加入 lot_id (!!!)
     db: Session = Depends(get_db)
 ):
     """ 取得「新增停車場」的 Modal 表單 """
+    
+    lot = None
+    if lot_id:  # (!!!) 3. 加入這個 if 區塊 (!!!)
+        lot = db.get(ParkingLot, lot_id)
+        if not lot:
+            raise HTTPException(status_code=404, detail="找不到該停車場")
+            
     return templates.TemplateResponse(
-        name="fragments/parking_lot_form.html", # (我們將在 B 步驟建立)
-        context={"request": request, "lot": None}
+        name="fragments/parking_lot_form.html",
+        context={"request": request, "lot": lot} # (!!!) 4. 傳遞 lot 物件 (!!!)
     )
 
 @app.post("/parking-lot/new")
-async def create_parking_lot(
+@app.post("/parking-lot/{lot_id}/edit")  # (!!!) 1. 加入這行 (!!!)
+async def create_or_update_parking_lot(  # (!!!) 2. 重新命名 (!!!)
     request: Request,
     db: Session = Depends(get_db),
+    lot_id: Optional[UUID] = None,  # (!!!) 3. 加入 lot_id (!!!)
     name: str = Form(...),
     notes: Optional[str] = Form(None)
 ):
-    """ 處理「新增停車場」的提交 """
-    existing = db.scalar(select(ParkingLot).where(ParkingLot.name == name))
+    """ 處理「新增」或「編輯」停車場的提交 """
+    
+    # 檢查名稱重複 (排除自己)
+    stmt = select(ParkingLot).where(ParkingLot.name == name)
+    if lot_id:
+        stmt = stmt.where(ParkingLot.id != lot_id)
+    existing = db.scalar(stmt)
     if existing:
         raise HTTPException(status_code=400, detail="停車場名稱已存在")
-    
-    new_lot = ParkingLot(name=name, notes=notes)
-    db.add(new_lot)
+
+    # (!!!) 4. 檢查是新增還是編輯 (!!!)
+    if lot_id:
+        lot = db.get(ParkingLot, lot_id)
+        if not lot:
+            raise HTTPException(status_code=404, detail="找不到該停車場")
+        toast_message = "停車場更新成功！"
+    else:
+        lot = ParkingLot()
+        db.add(lot)
+        toast_message = "停車場新增成功！"
+
+    lot.name = name
+    lot.notes = notes
     
     try:
         db.commit()
@@ -2187,67 +2214,165 @@ async def create_parking_lot(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
+    # (!!!) 5. 使用我們之前建立的 HX-Trigger (!!!)
     headers = {
         "HX-Trigger": json.dumps({
             "showToast": {
-                "message": "停車場新增成功！", 
+                "message": toast_message, 
                 "level": "success",
                 "closeModal": True
             },
-            "refreshParkingManagementPage": True
+            "refreshParkingManagementPage": True, # 刷新整頁
+            "refreshParkingLotList": True       # (!!!) 刷新停車場列表 (下一步會用到) (!!!)
         })
     }
     return Response(status_code=200, headers=headers)
 
-@app.get("/parking-spot/new")
-async def get_parking_spot_form(
+@app.delete("/parking-lot/{lot_id}/delete")
+async def delete_parking_lot(
+    lot_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 刪除一個停車場 """
+    lot = db.get(ParkingLot, lot_id)
+    if not lot:
+        return Response(status_code=200)
+
+    try:
+        db.delete(lot)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        if "violates foreign key constraint" in str(e).lower():
+            raise HTTPException(status_code=400, detail="無法刪除：請先刪除此停車場下的所有車位。")
+        raise HTTPException(status_code=500, detail=f"刪除失敗: {e}")
+
+    # (!!!) 7. 刪除成功後，觸發整頁和列表刷新 (!!!)
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {
+                "message": "停車場刪除成功！", 
+                "level": "success",
+                "closeModal": False # (因為這不是在彈窗中觸發的)
+            },
+            "refreshParkingManagementPage": True, # 刷新整頁 (更新篩選器)
+            "refreshParkingLotList": True       # 刷新停車場列表
+        })
+    }
+    return Response(status_code=200, headers=headers)
+
+@app.get("/parking-lot/new")
+@app.get("/parking-lot/{lot_id}/edit")  # (!!!) 1. 加入這行 (!!!)
+async def get_parking_lot_form(
+    request: Request,
+    lot_id: Optional[UUID] = None,  # (!!!) 2. 加入 lot_id (!!!)
+    db: Session = Depends(get_db)
+):
+    """ 取得「新增停車場」的 Modal 表單 """
+    
+    lot = None
+    if lot_id:  # (!!!) 3. 加入這個 if 區塊 (!!!)
+        lot = db.get(ParkingLot, lot_id)
+        if not lot:
+            raise HTTPException(status_code=404, detail="找不到該停車場")
+            
+    return templates.TemplateResponse(
+        name="fragments/parking_lot_form.html",
+        context={"request": request, "lot": lot} # (!!!) 4. 傳遞 lot 物件 (!!!)
+    )
+
+@app.get("/parking-lot-list")
+async def get_parking_lot_list(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """ 取得「新增車位」的 Modal 表單 """
+    """ 取得「停車場列表」的 Modal 彈窗 (用於管理) """
+    
+    lots = db.scalars(
+        select(ParkingLot)
+        .options(joinedload(ParkingLot.spots)) # 載入車位 (用來計數)
+        .order_by(ParkingLot.name)
+    ).unique().all() # (!!!) 加上 .unique() 更保險 (!!!)
+            
+    return templates.TemplateResponse(
+        name="fragments/parking_lot_list.html", # (下一步建立這個檔案)
+        context={"request": request, "lots": lots}
+    )
+
+@app.get("/parking-spot/new")
+@app.get("/parking-spot/{spot_id}/edit")  # (!!!) 1. 加入這行 (!!!)
+async def get_parking_spot_form(
+    request: Request,
+    spot_id: Optional[UUID] = None,  # (!!!) 2. 加入 spot_id (!!!)
+    db: Session = Depends(get_db)
+):
+    """ 取得「新增」或「編輯」車位的 Modal 表單 """
+    
+    spot = None
+    if spot_id:  # (!!!) 3. 加入這個 if 區塊 (!!!)
+        spot = db.get(ParkingSpot, spot_id)
+        if not spot:
+            raise HTTPException(status_code=404, detail="找不到該車位")
+
     all_lots = db.scalars(select(ParkingLot).order_by(ParkingLot.name)).all()
     
     return templates.TemplateResponse(
-        name="fragments/parking_spot_form.html", # (我們將在 B 步驟建立)
+        name="fragments/parking_spot_form.html",
         context={
             "request": request,
-            "spot": None,
+            "spot": spot,  # (!!!) 4. 傳遞 spot 物件 (!!!)
             "all_lots": all_lots
         }
     )
 
 @app.post("/parking-spot/new")
-async def create_parking_spot(
+@app.post("/parking-spot/{spot_id}/edit")  # (!!!) 1. 加入這行 (!!!)
+async def create_or_update_parking_spot(  # (!!!) 2. 重新命名 (!!!)
     request: Request,
     db: Session = Depends(get_db),
+    spot_id: Optional[UUID] = None,  # (!!!) 3. 加入 spot_id (!!!)
     lot_id: str = Form(...),
     spot_number: str = Form(...),
     description: Optional[str] = Form(None)
 ):
-    """ 處理「新增車位」的提交 """
+    """ 處理「新增」或「編輯」車位的提交 """
     if not lot_id:
         raise HTTPException(status_code=400, detail="必須選擇一個停車場")
         
     lot_uuid = UUID(lot_id)
     
-    # 檢查車位編號在同一個停車場內是否重複
-    existing = db.scalar(
+    # (!!!) 4. 檢查是新增還是編輯 (!!!)
+    if spot_id:
+        # 編輯模式
+        spot = db.get(ParkingSpot, spot_id)
+        if not spot:
+            raise HTTPException(status_code=404, detail="找不到該車位")
+        toast_message = "車位更新成功！"
+    else:
+        # 新增模式
+        spot = ParkingSpot(status=ParkingAssignmentType.empty)
+        db.add(spot)
+        toast_message = "車位新增成功！"
+
+    # 檢查車位編號在同一個停車場內是否重複 (排除自己)
+    stmt = (
         select(ParkingSpot)
         .where(
             (ParkingSpot.lot_id == lot_uuid) &
             (ParkingSpot.spot_number == spot_number)
         )
     )
+    if spot_id:  # (!!!) 5. 編輯時要排除自己 (!!!)
+        stmt = stmt.where(ParkingSpot.id != spot_id)
+        
+    existing = db.scalar(stmt)
     if existing:
         raise HTTPException(status_code=400, detail="該停車場的車位編號已存在")
 
-    new_spot = ParkingSpot(
-        lot_id=lot_uuid,
-        spot_number=spot_number,
-        description=description,
-        status=ParkingAssignmentType.empty # 預設為空位
-    )
-    db.add(new_spot)
+    # 更新欄位
+    spot.lot_id = lot_uuid
+    spot.spot_number = spot_number
+    spot.description = description
 
     try:
         db.commit()
@@ -2255,10 +2380,11 @@ async def create_parking_spot(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
+    # (!!!) 6. 使用我們之前建立的 HX-Trigger (!!!)
     headers = {
         "HX-Trigger": json.dumps({
             "showToast": {
-                "message": "車位新增成功！", 
+                "message": toast_message, 
                 "level": "success",
                 "closeModal": True
             },
@@ -2266,6 +2392,30 @@ async def create_parking_spot(
         })
     }
     return Response(status_code=200, headers=headers)
+
+@app.delete("/parking-spot/{spot_id}/delete")
+async def delete_parking_spot(
+    spot_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 刪除一個車位 """
+    spot = db.get(ParkingSpot, spot_id)
+    if not spot:
+        # 已經被刪了，也算成功
+        return Response(status_code=200)
+
+    try:
+        db.delete(spot)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # 檢查是否有外鍵約束 (例如車位已被指派)
+        if "violates foreign key constraint" in str(e).lower():
+            raise HTTPException(status_code=400, detail="無法刪除：該車位目前仍有指派紀錄。")
+        raise HTTPException(status_code=500, detail=f"刪除失敗: {e}")
+
+    # 刪除成功，HTMX 會自動移除該行，不需要回傳 HX-Trigger
+    return Response(status_code=200)
 
 # --- 健康檢查 ---
 @app.get("/health")

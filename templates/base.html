@@ -193,6 +193,9 @@
     <!-- 顯示 Toast 的容器 -->
     <div id="toast-root" class="fixed top-4 right-4 z-[1000] space-y-2"></div>
     <script>
+    /**
+     * 負責在畫面上顯示一個 Toast 提示
+     */
     function showToast(msg, level='success', timeout=2200){
         const root = document.getElementById('toast-root'); if(!root) return;
         const el = document.createElement('div');
@@ -214,11 +217,13 @@
         showToast(detail.message, detail.level);
         
         // 2. 檢查伺服器是否要求「關閉彈窗」
-        // (這樣附件管理才能設定 false, 其他表單設定 true)
         if (detail.closeModal === true) {
             // 找到所有開啟的 modal (用 .fixed) 並移除
             document.querySelectorAll('.fixed.inset-0').forEach(n => n.remove());
         }
+        
+        // (!!!) 移除 htmx.trigger(...) 那一行 (!!!)
+        // 刷新工作完全交給 HX-Trigger 的其他 key (例如 "refreshParkingSpotsList": true)
     });
     </script>
 

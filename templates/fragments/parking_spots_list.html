@@ -32,7 +32,14 @@
           >
             指派
           </button>
-          
+          <button 
+            class="text-yellow-600 hover:text-yellow-900 ml-4"
+            hx-get="/parking-spot/{{ spot.id }}/edit"
+            hx-target="#modal-container"
+            hx-swap="beforeend"
+          >
+            編輯
+          </button>
           {% if spot.status.value != 'empty' %}
           <button 
             class="text-red-600 hover:text-red-900 ml-4"
@@ -42,6 +49,17 @@
             hx-confirm="確定要清空車位 [{{ spot.spot_number }}] 嗎？"
           >
             清空
+          </button>
+          {% endif %}
+          {% if spot.status.value == 'empty' %}
+          <button 
+            class="text-red-600 hover:text-red-900 ml-4"
+            hx-delete="/parking-spot/{{ spot.id }}/delete"
+            hx-target="closest tr"
+            hx-swap="outerHTML"
+            hx-confirm="確定要「刪除」車位 [{{ spot.spot_number }}] 嗎？\n此動作無法復原。"
+          >
+            刪除
           </button>
           {% endif %}
         </td>

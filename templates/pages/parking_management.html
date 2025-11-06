@@ -5,6 +5,14 @@
     </h2>
     <div class="flex space-x-2">
       <button 
+          class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-600 transition duration-300"
+          hx-get="/parking-lot-list"
+          hx-target="#modal-container"
+          hx-swap="beforeend"
+        >
+          管理停車場
+        </button>
+      <button 
         class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"
         hx-get="/parking-lot/new"
         hx-target="#modal-container"
