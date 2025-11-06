@@ -191,30 +191,44 @@
     </script>
     
     <script>
-    function showSuccessMessage(formElement) {
-        // 1. 找到表單內的 ".save-status" 元素
+       /**
+       * 僅顯示成功訊息，2 秒後自動清除。
+       * (用於「附件管理」，彈窗需要保持開啟)
+       */
+      function showSuccessMessage(formElement) {
         const statusEl = formElement.querySelector('.save-status');
         if (!statusEl) return;
 
-        // 2. 顯示成功訊息
         statusEl.innerText = "儲存成功!";
         
-        // (!!!) 新增：找到這個表單所在的 Modal 彈窗 (!!!)
+        setTimeout(() => {
+          if (statusEl) {
+            statusEl.innerText = "";
+          }
+        }, 2000);
+      }
+
+      /**
+       * 顯示成功訊息，並在 2 秒後自動關閉 Modal 彈窗。
+       * (用於所有主要的「新增/編輯」表單)
+       */
+      function showSuccessAndClose(formElement) {
+        const statusEl = formElement.querySelector('.save-status');
+        if (!statusEl) return;
+
+        statusEl.innerText = "儲存成功!";
+        
         const modal = formElement.closest('.fixed');
 
-        // 3. 2 秒後...
         setTimeout(() => {
-        // (舊) 自動清除訊息
-        if (statusEl) {
+          if (statusEl) {
             statusEl.innerText = "";
-        }
-        
-        // (!!!) 新增：自動關閉 Modal (!!!)
-        if (modal) {
+          }
+          if (modal) {
             modal.remove();
-        }
+          }
         }, 2000); // 延遲 2 秒，讓使用者看得到訊息
-    }
+      }
     </script>
 
 </body>

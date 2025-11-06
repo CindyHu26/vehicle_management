@@ -28,7 +28,7 @@
     <form 
       hx-post="/parking-spot/{{ spot.id }}/assign"
       hx-swap="none"
-      hx-on:htmx:afterSettle="showSuccessMessage(this)"
+      hx-on:htmx:afterSettle="showSuccessAndClose(this)"
     >
       <div class="space-y-4">
         

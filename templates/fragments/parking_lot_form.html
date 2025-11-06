@@ -28,7 +28,7 @@
         hx-post="/parking-lot/new"
       {% endif %}
       hx-swap="none"
-      hx-on:htmx:afterSettle="showSuccessMessage(this)"
+      hx-on:htmx:afterSettle="showSuccessAndClose(this)"
     >
       <div class="space-y-4">
         

@@ -17,7 +17,7 @@ from fastapi import (
 )
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates 
-from sqlalchemy import create_engine, select, desc
+from sqlalchemy import create_engine, or_, select, desc
 from sqlalchemy.orm import sessionmaker, Session, joinedload 
 
 from models import (
@@ -1922,16 +1922,22 @@ async def get_parking_management_page(
 ):
     """ 渲染「停車場管理」的主頁面 """
     all_lots = db.scalars(select(ParkingLot).order_by(ParkingLot.name)).all()
+    
+    # (!!!) 1. 查詢新篩選器所需的資料 (!!!)
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    all_statuses = list(ParkingAssignmentType)
 
     return templates.TemplateResponse(
-        name="pages/parking_management.html", # (我們將在下一步建立)
+        name="pages/parking_management.html",
         context={
             "request": request,
             "all_lots": all_lots,
+            "all_employees": all_employees,  # (!!!) 2. 傳遞員工 (!!!)
+            "all_statuses": all_statuses,    # (!!!) 3. 傳遞狀態 (!!!)
             "query_params": request.query_params
         }
     )
-
+    
 @app.get("/parking-spots-list")
 async def get_parking_spots_list(
     request: Request,
@@ -1944,23 +1950,41 @@ async def get_parking_spots_list(
         select(ParkingSpot)
         .options(
             joinedload(ParkingSpot.lot),
-            joinedload(ParkingSpot.assigned_vehicle),
+            joinedload(ParkingSpot.assigned_vehicle).joinedload(Vehicle.user), # (!!!) 1. 深入載入公司車的使用人 (!!!)
             joinedload(ParkingSpot.assigned_employee)
         )
+        .join(ParkingLot) # (!!!) 2. 先 join ParkingLot 才能排序 (!!!)
     )
 
-    # 處理篩選
+    # (!!!) 3. 處理所有篩選 (!!!)
     filter_lot_id = query_params.get("filter_lot_id")
+    filter_status = query_params.get("filter_status")
+    filter_employee_id = query_params.get("filter_employee_id")
+    
     if filter_lot_id:
         stmt = stmt.where(ParkingSpot.lot_id == UUID(filter_lot_id))
+        
+    if filter_status:
+        stmt = stmt.where(ParkingSpot.status == filter_status)
+
+    if filter_employee_id:
+        emp_uuid = UUID(filter_employee_id)
+        # (!!!) 4. 複雜查詢：使用人可能是「私車車主」或「公司車的主要使用人」 (!!!)
+        stmt = stmt.outerjoin(ParkingSpot.assigned_vehicle).outerjoin(Vehicle.user)
+        stmt = stmt.where(
+            or_(
+                ParkingSpot.assigned_employee_id == emp_uuid,
+                Vehicle.user_id == emp_uuid
+            )
+        )
 
     # 預設排序：停車場名稱 + 車位編號
-    stmt = stmt.join(ParkingLot).order_by(ParkingLot.name, ParkingSpot.spot_number)
+    stmt = stmt.order_by(ParkingLot.name, ParkingSpot.spot_number)
 
-    spots = db.scalars(stmt).all()
+    spots = db.scalars(stmt).unique().all() # (!!!) 5. 加上 .unique() (!!!)
 
     return templates.TemplateResponse(
-        name="fragments/parking_spots_list.html", # (我們將在下一步建立)
+        name="fragments/parking_spots_list.html",
         context={
             "request": request,
             "spots": spots,
