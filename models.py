@@ -277,3 +277,49 @@ class Attachment(Base):
     file_path = Column(String, nullable=False, info={"label": "儲存路徑"})
     description = Column(Text, nullable=True, info={"label": "檔案說明"})
     uploaded_at = Column(DateTime, default=datetime.utcnow, info={"label": "上傳時間"})
+
+class ParkingAssignmentType(str, enum.Enum):
+    empty = "empty"             # 空位
+    company_vehicle = "company_vehicle" # 公司車
+    private_vehicle = "private_vehicle" # 私車
+
+# 1. 停車場 (例如：B1、戶外)
+class ParkingLot(Base):
+    __tablename__ = "parking_lots"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, info={"label": "ID"})
+    name = Column(String(100), unique=True, nullable=False, info={"label": "停車場名稱"})
+    notes = Column(Text, nullable=True, info={"label": "備註"})
+
+    spots = relationship("ParkingSpot", back_populates="lot", cascade="all, delete-orphan")
+
+    def __str__(self) -> str:
+        return self.name or f"停車場ID: {str(self.id)[:6]}"
+
+# 2. 停車位 (核心模型)
+class ParkingSpot(Base):
+    __tablename__ = "parking_spots"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, info={"label": "ID"})
+    
+    lot_id = Column(UUID(as_uuid=True), ForeignKey("parking_lots.id"), nullable=False, info={"label": "所屬停車場"})
+    lot = relationship("ParkingLot", back_populates="spots")
+    
+    spot_number = Column(String(50), nullable=False, info={"label": "車位編號"})
+    description = Column(String(200), nullable=True, info={"label": "車位描述"})
+    
+    # --- 以下是「狀態」欄位 ---
+    status = Column(Enum(ParkingAssignmentType), nullable=False, default=ParkingAssignmentType.empty, info={"label": "狀態"})
+    
+    # 關聯公司車
+    assigned_vehicle_id = Column(UUID(as_uuid=True), ForeignKey("vehicles.id"), nullable=True, info={"label": "公司車"})
+    assigned_vehicle = relationship("Vehicle")
+    
+    # 關聯私車 (車主 + 車牌)
+    assigned_employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True, info={"label": "私車車主"})
+    assigned_employee = relationship("Employee")
+    private_plate_no = Column(String(50), nullable=True, info={"label": "私車車牌"})
+    
+    notes = Column(Text, nullable=True, info={"label": "指派備註"})
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, info={"label": "更新時間"})
+    
+    def __str__(self) -> str:
+        return f"{self.lot.name} - {self.spot_number}"

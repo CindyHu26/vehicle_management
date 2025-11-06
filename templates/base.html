@@ -100,7 +100,17 @@
                         >
                         費用管理 (全)
                         </a>
-                    </li>                    
+                    </li>  
+                    <li>
+                        <a href="#" 
+                        class="block px-4 py-2 rounded text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+                        hx-get="/parking-management"
+                        hx-target="#main-content"
+                        hx-swap="innerHTML"
+                        >
+                        停車場管理
+                        </a>
+                    </li>                 
                     </ul>
             </div>
         </nav>
@@ -180,6 +190,23 @@
     document.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
     </script>
     
+    <script>
+      function showSuccessMessage(formElement) {
+        // 1. 找到表單內的 ".save-status" 元素
+        const statusEl = formElement.querySelector('.save-status');
+        if (!statusEl) return;
+
+        // 2. 顯示成功訊息
+        statusEl.innerText = "儲存成功!";
+        
+        // 3. 2 秒後自動清除訊息
+        setTimeout(() => {
+          if (statusEl) {
+            statusEl.innerText = "";
+          }
+        }, 2000);
+      }
+    </script>
 
 </body>
 </html>

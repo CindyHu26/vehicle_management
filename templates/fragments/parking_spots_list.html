@@ -1,0 +1,83 @@
+<div class="bg-white shadow-md rounded-lg overflow-hidden">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">停車場</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">車位編號</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">停放車輛/人員</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">備註</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+      
+      {% if not spots %}
+        <tr>
+          <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+            查無車位
+          </td>
+        </tr>
+      {% endif %}
+
+      {% for spot in spots %}
+      <tr class="hover:bg-gray-50">
+        
+        <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+          <button 
+            class="text-blue-600 hover:text-blue-900"
+            hx-get="/parking-spot/{{ spot.id }}/assign"
+            hx-target="#modal-container"
+            hx-swap="beforeend"
+          >
+            指派
+          </button>
+          
+          {% if spot.status.value != 'empty' %}
+          <button 
+            class="text-red-600 hover:text-red-900 ml-4"
+            hx-post="/parking-spot/{{ spot.id }}/clear"
+            hx-target="closest tr"
+            hx-swap="outerHTML"
+            hx-confirm="確定要清空車位 [{{ spot.spot_number }}] 嗎？"
+          >
+            清空
+          </button>
+          {% endif %}
+        </td>
+
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+          {{ spot.lot.name }}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+          {{ spot.spot_number }}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm">
+          {% if spot.status.value == 'empty' %}
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+              {{ parking_status_map.get(spot.status.value) }}
+            </span>
+          {% else %}
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+              {{ parking_status_map.get(spot.status.value) }}
+            </span>
+          {% endif %}
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+          {% if spot.status.value == 'company_vehicle' and spot.assigned_vehicle %}
+            {{ spot.assigned_vehicle.plate_no }} (公司車)
+          {% elif spot.status.value == 'private_vehicle' and spot.assigned_employee %}
+            {{ spot.private_plate_no }} ({{ spot.assigned_employee.name }})
+          {% else %}
+            --
+          {% endif %}
+        </td>
+        <td class="px-6 py-4 text-sm text-gray-700 truncate" style="max-width: 200px;">
+          {{ spot.notes or '' }}
+        </td>
+      </tr>
+      {% endfor %}
+
+    </tbody>
+  </table>
+</div>

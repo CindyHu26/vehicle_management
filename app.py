@@ -26,7 +26,8 @@ from models import (
     Maintenance, MaintenanceCategory, Fee, FeeType,
     Inspection, InspectionKind,
     VehicleAssetLog, AssetType, AssetStatus, Disposal,
-    Attachment, AttachmentEntity
+    Attachment, AttachmentEntity,
+    ParkingLot, ParkingSpot, ParkingAssignmentType
 )
 from config import settings, UPLOAD_PATH
 
@@ -100,6 +101,12 @@ ASSET_STATUS_MAP = {
     "disposed": "已報廢/處理",
 }
 
+PARKING_STATUS_MAP = {
+    "empty": "空位",
+    "company_vehicle": "公司車",
+    "private_vehicle": "私車",
+}
+
 app = FastAPI(title="公務車管理系統")
 
 # --- DB 連線與 Session ---
@@ -125,6 +132,7 @@ templates.env.globals['inspection_kind_map'] = INSPECTION_KIND_MAP
 templates.env.globals['fee_type_map'] = FEE_TYPE_MAP
 templates.env.globals['asset_type_map'] = ASSET_TYPE_MAP
 templates.env.globals['asset_status_map'] = ASSET_STATUS_MAP
+templates.env.globals['parking_status_map'] = PARKING_STATUS_MAP
 
 # --- 頁面路由 ---
 @app.get("/")
@@ -1905,6 +1913,263 @@ async def get_vehicle_options(
             "preselected_vehicle_id": preselected_vehicle_id, # 傳遞預選 ID
             "show_none_option": show_none_option # (!!!) 2. 傳遞此參數 (!!!)
         }
+    )
+
+@app.get("/parking-management")
+async def get_parking_management_page(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """ 渲染「停車場管理」的主頁面 """
+    all_lots = db.scalars(select(ParkingLot).order_by(ParkingLot.name)).all()
+
+    return templates.TemplateResponse(
+        name="pages/parking_management.html", # (我們將在下一步建立)
+        context={
+            "request": request,
+            "all_lots": all_lots,
+            "query_params": request.query_params
+        }
+    )
+
+@app.get("/parking-spots-list")
+async def get_parking_spots_list(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """ 取得停車位列表 (片段) """
+    query_params = request.query_params
+
+    stmt = (
+        select(ParkingSpot)
+        .options(
+            joinedload(ParkingSpot.lot),
+            joinedload(ParkingSpot.assigned_vehicle),
+            joinedload(ParkingSpot.assigned_employee)
+        )
+    )
+
+    # 處理篩選
+    filter_lot_id = query_params.get("filter_lot_id")
+    if filter_lot_id:
+        stmt = stmt.where(ParkingSpot.lot_id == UUID(filter_lot_id))
+
+    # 預設排序：停車場名稱 + 車位編號
+    stmt = stmt.join(ParkingLot).order_by(ParkingLot.name, ParkingSpot.spot_number)
+
+    spots = db.scalars(stmt).all()
+
+    return templates.TemplateResponse(
+        name="fragments/parking_spots_list.html", # (我們將在下一步建立)
+        context={
+            "request": request,
+            "spots": spots,
+            "query_params": query_params
+        }
+    )
+
+@app.get("/parking-spot/{spot_id}/assign")
+async def get_parking_assignment_form(
+    request: Request,
+    spot_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 取得「指派車位」的 Modal 表單 """
+    spot = db.get(ParkingSpot, spot_id)
+    if not spot:
+        raise HTTPException(status_code=404, detail="找不到該車位")
+
+    all_employees = db.scalars(select(Employee).order_by(Employee.name)).all()
+    all_vehicles = db.scalars(select(Vehicle).where(Vehicle.status == VehicleStatus.active).order_by(Vehicle.plate_no)).all()
+
+    return templates.TemplateResponse(
+        name="fragments/parking_assignment_form.html", # (我們將在下一步建立)
+        context={
+            "request": request,
+            "spot": spot,
+            "all_employees": all_employees,
+            "all_vehicles": all_vehicles
+        }
+    )
+
+@app.post("/parking-spot/{spot_id}/assign")
+async def create_or_update_parking_assignment(
+    request: Request,
+    spot_id: UUID,
+    db: Session = Depends(get_db),
+    # 接收表單欄位
+    assignment_type: ParkingAssignmentType = Form(...),
+    vehicle_id: Optional[str] = Form(None),
+    employee_id: Optional[str] = Form(None),
+    private_plate_no: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None)
+):
+    """ 處理「指派車位」的表單提交 """
+    spot = db.get(ParkingSpot, spot_id)
+    if not spot:
+        raise HTTPException(status_code=404, detail="找不到該車位")
+
+    # 1. 清空舊資料
+    spot.assigned_vehicle_id = None
+    spot.assigned_employee_id = None
+    spot.private_plate_no = None
+
+    # 2. 根據類型填入新資料
+    spot.status = assignment_type
+    spot.notes = notes
+
+    if assignment_type == ParkingAssignmentType.company_vehicle:
+        if not vehicle_id:
+            raise HTTPException(status_code=400, detail="必須選擇一輛公司車")
+        spot.assigned_vehicle_id = UUID(vehicle_id)
+
+    elif assignment_type == ParkingAssignmentType.private_vehicle:
+        if not employee_id or not private_plate_no:
+            raise HTTPException(status_code=400, detail="必須選擇私車車主並填寫車牌")
+        spot.assigned_employee_id = UUID(employee_id)
+        spot.private_plate_no = private_plate_no
+
+    # (如果是 empty，就保持全部為 None)
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # 觸發列表刷新
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshParkingSpotsList"}
+    )
+
+@app.post("/parking-spot/{spot_id}/clear")
+async def clear_parking_assignment(
+    request: Request,
+    spot_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """ 清空一個車位的指派 (設為 Empty) """
+    spot = db.get(ParkingSpot, spot_id)
+    if not spot:
+        raise HTTPException(status_code=404, detail="找不到該車位")
+
+    spot.status = ParkingAssignmentType.empty
+    spot.assigned_vehicle_id = None
+    spot.assigned_employee_id = None
+    spot.private_plate_no = None
+    spot.notes = None
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # 觸發列表刷新
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshParkingSpotsList"}
+    )
+
+@app.get("/parking-lot/new")
+async def get_parking_lot_form(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """ 取得「新增停車場」的 Modal 表單 """
+    return templates.TemplateResponse(
+        name="fragments/parking_lot_form.html", # (我們將在 B 步驟建立)
+        context={"request": request, "lot": None}
+    )
+
+@app.post("/parking-lot/new")
+async def create_parking_lot(
+    request: Request,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    notes: Optional[str] = Form(None)
+):
+    """ 處理「新增停車場」的提交 """
+    existing = db.scalar(select(ParkingLot).where(ParkingLot.name == name))
+    if existing:
+        raise HTTPException(status_code=400, detail="停車場名稱已存在")
+    
+    new_lot = ParkingLot(name=name, notes=notes)
+    db.add(new_lot)
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # (!!!) 觸發「停車場管理頁面」刷新 (!!!)
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshParkingManagementPage"}
+    )
+
+@app.get("/parking-spot/new")
+async def get_parking_spot_form(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """ 取得「新增車位」的 Modal 表單 """
+    all_lots = db.scalars(select(ParkingLot).order_by(ParkingLot.name)).all()
+    
+    return templates.TemplateResponse(
+        name="fragments/parking_spot_form.html", # (我們將在 B 步驟建立)
+        context={
+            "request": request,
+            "spot": None,
+            "all_lots": all_lots
+        }
+    )
+
+@app.post("/parking-spot/new")
+async def create_parking_spot(
+    request: Request,
+    db: Session = Depends(get_db),
+    lot_id: str = Form(...),
+    spot_number: str = Form(...),
+    description: Optional[str] = Form(None)
+):
+    """ 處理「新增車位」的提交 """
+    if not lot_id:
+        raise HTTPException(status_code=400, detail="必須選擇一個停車場")
+        
+    lot_uuid = UUID(lot_id)
+    
+    # 檢查車位編號在同一個停車場內是否重複
+    existing = db.scalar(
+        select(ParkingSpot)
+        .where(
+            (ParkingSpot.lot_id == lot_uuid) &
+            (ParkingSpot.spot_number == spot_number)
+        )
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="該停車場的車位編號已存在")
+
+    new_spot = ParkingSpot(
+        lot_id=lot_uuid,
+        spot_number=spot_number,
+        description=description,
+        status=ParkingAssignmentType.empty # 預設為空位
+    )
+    db.add(new_spot)
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
+
+    # (!!!) 觸發「停車位列表」刷新 (!!!)
+    return Response(
+        status_code=200,
+        headers={"HX-Trigger": "refreshParkingSpotsList"}
     )
 
 # --- 健康檢查 ---

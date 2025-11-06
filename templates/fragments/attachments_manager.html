@@ -97,7 +97,7 @@
         hx-on:htmx:afterOnLoad="this.reset()" 
         
         hx-swap="none"
-        
+        hx-on:htmx:afterOnLoad="showSuccessMessage(this)"
         class="space-y-4 p-4 border rounded-md bg-gray-50"
       >
         <input type="hidden" name="entity_type" value="{{ entity_type.value }}">
@@ -119,6 +119,7 @@
         </div>
 
         <div class="flex justify-end">
+          <span class="save-status text-green-600 text-sm"></span>
           <button type="submit"
                   class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
           >

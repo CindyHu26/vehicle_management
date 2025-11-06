@@ -1,0 +1,69 @@
+<div 
+  class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50"
+  hx-on:click="if (event.target === this) this.remove()"
+>
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg relative">
+    
+    <div class="absolute top-0 right-0 pt-4 pr-4">
+      <button 
+        type="button"
+        class="text-gray-400 hover:text-gray-600 transition duration-150 ease-in-out"
+        onclick="this.closest('.fixed').remove()"
+        aria-label="Close"
+      >
+        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <h2 class="text-2xl font-semibold mb-4">
+      {% if lot %} 編輯停車場 {% else %} 新增停車場 {% endif %}
+    </h2>
+
+    <form 
+      {% if lot %}
+        hx-post="/parking-lot/{{ lot.id }}/edit"
+      {% else %}
+        hx-post="/parking-lot/new"
+      {% endif %}
+      hx-swap="none"
+      hx-on:htmx:afterOnLoad="this.closest('.fixed').remove()"
+      hx-on:htmx:afterOnLoad="showSuccessMessage(this)"
+    >
+      <div class="space-y-4">
+        
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700">停車場名稱</label>
+          <input type="text" name="name" id="name" value="{{ lot.name if lot else '' }}" 
+                 required 
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700">備註</label>
+            <textarea name="notes" id="notes" rows="3"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >{{ (lot.notes or '') if lot else '' }}</textarea>
+        </div>
+
+      </div>
+
+      <div class="mt-6 flex justify-end space-x-3">
+        <span class="save-status text-green-600 text-sm"></span>
+        <button type="button" 
+                class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
+                hx-on:click="this.closest('.fixed').remove()"
+        >
+          取消
+        </button>
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+        >
+          儲存
+        </button>
+      </div>
+    </form>
+    
+  </div>
+</div>
