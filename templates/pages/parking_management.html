@@ -4,65 +4,67 @@
   hx-target="this"
   hx-swap="innerHTML"
 >
-  <div class="mb-4 flex justify-between items-center">
-    <h2 class="text-3xl font-bold text-gray-800">
-      停車場管理
-    </h2>
-    <div class="flex space-x-2">
-      <button 
-        class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"
-        hx-get="/parking-lot/new"
-        hx-target="#modal-container"
-        hx-swap="beforeend"
-      >
-        + 新增停車場
-      </button>
-      <button 
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
-        hx-get="/parking-spot/new"
-        hx-target="#modal-container"
-        hx-swap="beforeend"
-      >
-        + 新增車位
-      </button>
-    </div>
-  </div>
+  <div class="mb-4 space-y-4">
   
-  <form 
-    class="mb-4 p-4 bg-white rounded-lg shadow-sm"
-    hx-get="/parking-spots-list"
-    hx-target="#parking-spots-list-container"
-    hx-swap="innerHTML"
-    hx-trigger="change" 
-  >
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div>
-        <label for="filter_lot_id" class="block text-sm font-medium text-gray-700">停車場</label>
-        <select name="filter_lot_id" id="filter_lot_id"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 searchable-select">
-          <option value="">-- 所有停車場 --</option>
-          {% for lot in all_lots %}
-            <option value="{{ lot.id }}" {% if query_params.get('filter_lot_id') == lot.id|string %}selected{% endif %}>
-              {{ lot.name }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-      
-      <div class="flex items-end col-start-4">
-        <a href="#" 
-           class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 w-full text-center"
-           hx-get="/parking-management"
-           hx-target="#main-content"
-           hx-swap="innerHTML"
+    <div class="flex justify-between items-center">
+      <h2 class="text-3xl font-bold text-gray-800">
+        停車場管理
+      </h2>
+      <div class="flex space-x-2">
+        <button 
+          class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition duration-300"
+          hx-get="/parking-lot/new"
+          hx-target="#modal-container"
+          hx-swap="beforeend"
         >
-          重設
-        </a>
+          + 新增停車場
+        </button>
+        <button 
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition duration-300"
+          hx-get="/parking-spot/new"
+          hx-target="#modal-container"
+          hx-swap="beforeend"
+        >
+          + 新增車位
+        </button>
       </div>
     </div>
-  </form>
-
-  <div 
+    
+    <form 
+      class="p-4 bg-white rounded-lg shadow-sm"
+      hx-get="/parking-spots-list"
+      hx-target="#parking-spots-list-container"
+      hx-swap="innerHTML"
+      hx-trigger="change" 
+    >
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label for="filter_lot_id" class="block text-sm font-medium text-gray-700">停車場</label>
+          <select name="filter_lot_id" id="filter_lot_id"
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 searchable-select">
+            <option value="">-- 所有停車場 --</option>
+            {% for lot in all_lots %}
+              <option value="{{ lot.id }}" {% if query_params.get('filter_lot_id') == lot.id|string %}selected{% endif %}>
+                {{ lot.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="flex items-end col-start-4">
+          <a href="#" 
+             class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 w-full text-center"
+             hx-get="/parking-management"
+             hx-target="#main-content"
+             hx-swap="innerHTML"
+          >
+            重設
+          </a>
+        </div>
+      </div>
+    </form>
+    
+  </div> <div 
     id="parking-spots-list-container"
     hx-get="/parking-spots-list"
     hx-trigger="load, refreshParkingSpotsList from:body"
