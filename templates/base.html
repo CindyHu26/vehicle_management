@@ -8,7 +8,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-</head>
+
+    <style>
+        .ts-control, .ts-wrapper.single .ts-control { cursor: text; }
+        .ts-control input {
+        width: auto !important;
+        min-width: 6ch;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        }
+        .ts-dropdown .ts-dropdown-input { width: 100%; padding: 0.5rem 0.75rem; }
+        .ts-dropdown .ts-dropdown-input input {
+        width: 100% !important;
+        border: 1px solid #d1d5db;
+        padding: 0.5rem 0.75rem; border-radius: 0.375rem;
+        }
+        /* 防止其他樣式誤傷 */
+        .ts-wrapper, .ts-control, .ts-control input, .ts-dropdown .ts-dropdown-input input {
+        pointer-events: auto !important;
+        }
+    </style>
+    </head>
 <body class="bg-gray-100">
 
     <header class="bg-white shadow-md">
@@ -96,54 +116,70 @@
     <div id="modal-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
-<script>
-      // 封裝一個啟動函式
-      function initializeTomSelect(element) {
-        // 檢查它是否是 .searchable-select 且尚未被啟動
-        if (element.classList.contains('searchable-select') && !element.tomselect) {
-          
-          new TomSelect(element, {
-            create: false, // 不允許使用者新增選項
-            sortField: {
-              field: "text",
-              direction: "asc"
-            },
+    <script>
+    function initializeTomSelect(el) {
+        if (!el || !el.classList.contains('searchable-select') || el.dataset.tsInitialized) return;
+        el.dataset.tsInitialized = '1';
 
-            // (!!!) 這裡是「支援中文搜尋」的關鍵程式碼 (!!!)
-            // 我們覆蓋 Tom-Select 的評分(score)函式
-            score: function(search) {
-              // 取得預設的評分函式 (雖然我們不用它)
-              var score = this.getScoreFunction(search);
-              
-              return function(item) {
-                // 如果 search (搜尋文字) 是空的，顯示所有項目
-                if (search.length === 0) return 1;
+        const ts = new TomSelect(el, {
+        create: false,
+        sortField: { field: "text", direction: "asc" },
+        plugins: ['dropdown_input'],
+        openOnFocus: true,
+        closeAfterSelect: false,   // 建議先別關，方便連續輸入
+        debounce: 100,
+        score(search) {
+            return function(item) {
+            const t = (item.text || '').toLowerCase();
+            const q = (search || '').toLowerCase();
+            if (!q) return 1;
+            return t.indexOf(q) > -1 ? 1 : 0;
+            };
+        },
+        onInitialize() {
+            const bindIme = (inputEl) => {
+            if (!inputEl || inputEl.__imeBound) return;
+            inputEl.__imeBound = true;
+            let composing = false;
+            inputEl.addEventListener('compositionstart', () => { composing = true; });
+            inputEl.addEventListener('compositionend',   () => {
+                composing = false;
+                this.onSearchChange(inputEl.value);
+            });
+            inputEl.addEventListener('keyup', (e) => {
+                if (composing) e.stopPropagation();
+            }, true);
+            };
 
-                // 檢查 item.text (選項文字) 是否「包含」 search (搜尋文字)
-                // 'indexOf' > -1 意思就是「包含」
-                // 這能讓我們用 "大明" 搜到 "王大明 / 0912..."
-                return (item.text.toLowerCase().indexOf(search.toLowerCase()) > -1) ? 1 : 0;
-              };
-            }
-            // (!!!) 中文搜尋程式碼結束 (!!!)
+            // 1) 控制列 input（永遠存在）
+            bindIme(this.control_input);
 
-          });
+            // 2) 下拉面板的輸入框（展開時才生成）
+            const hookDropdownInput = () => {
+            const di = this.dropdown && this.dropdown.querySelector('.ts-dropdown-input input');
+            bindIme(di);
+            };
+            hookDropdownInput();
+            this.on('dropdown_open', hookDropdownInput);
         }
-      }
+        });
+    }
 
-      // 監聽 HTMX 載入內容的事件
-      document.body.addEventListener('htmx:afterOnLoad', function(event) {
-        // 啟動載入的根元素 (如果它自己就是 select)
-        initializeTomSelect(event.detail.elt);
-        
-        // 啟動載入的內容中所有的 .searchable-select
-        event.detail.elt.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
-      });
-      
-      // 也啟動頁面上已經存在的 .searchable-select (例如用在篩選器上)
-      document.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
+    // ✅ 內容已插入 DOM 後再初始化
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+        const root = event.detail.target || event.target;
+        if (!root) return;
 
+        if (root.classList && root.classList.contains('searchable-select')) {
+        initializeTomSelect(root);
+        }
+        root.querySelectorAll && root.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
+    });
+
+    // 首頁既有（非 HTMX 載入）的也掃一次
+    document.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
     </script>
+    
 
 </body>
 </html>
