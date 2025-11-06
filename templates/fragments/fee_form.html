@@ -16,6 +16,7 @@
         </svg>
       </button>
     </div>
+
     <h2 class="text-2xl font-semibold mb-4">
       {% if fee %}
         編輯費用/請款
@@ -31,8 +32,7 @@
         hx-post="/fee/new"
       {% endif %}
       hx-swap="none"
-
-      >
+    >
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         <div class="col-span-1">
@@ -40,11 +40,6 @@
             <select name="vehicle_id" id="vehicle_id"
                     class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     
-                    hx-get="/fragments/user-options"
-                    hx-trigger="change"
-                    hx-target="#user_id" 
-                    hx-swap="innerHTML"
-                    hx-include="this"
                     >
               <option value="">-- 無 (私車/雜項) --</option>
               {% for v in all_vehicles %}
@@ -58,15 +53,21 @@
         <div class="col-span-1">
             <label for="user_id" class="block text-sm font-medium text-gray-700">請款人 (可選)</label>
             <select name="user_id" id="user_id"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    
+                    hx-get="/fragments/vehicle-options?show_none_option=True"
+                    hx-trigger="change"
+                    hx-target="#vehicle_id" 
+                    hx-swap="innerHTML"
+                    hx-include="this"
+            >
               <option value="">-- 無 --</option>
-              
               {% for emp in all_employees %}
                 <option value="{{ emp.id }}" 
                   {% if (fee and fee.user_id == emp.id) or 
                         (not fee and preselected_user_id == emp.id) 
                   %}selected{% endif %}>
-                  {{ emp.name }}
+                  {{ emp.name }}{{ " / " ~ emp.phone if emp.phone else "" }}
                 </option>
               {% endfor %}
               </select>
@@ -129,14 +130,12 @@
       </div>
 
       <div class="mt-6 flex justify-end space-x-3">
-        
         <button type="button" 
                 class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
                 hx-on:click="this.closest('.fixed').remove()"
         >
           取消
         </button>
-        
         <button type="submit"
                 class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
         >

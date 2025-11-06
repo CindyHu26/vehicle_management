@@ -3,6 +3,6 @@
 {% for emp in all_employees %}
   <option value="{{ emp.id }}" 
     {% if preselected_user_id == emp.id %}selected{% endif %}>
-    {{ emp.name }}
+    {{ emp.name }}{{ " / " ~ emp.phone if emp.phone else "" }}
   </option>
 {% endfor %}

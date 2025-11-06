@@ -29,7 +29,7 @@
           <option value="">-- 所有人 --</option>
           {% for emp in all_employees %}
             <option value="{{ emp.id }}" {% if query_params.get('filter_user_id') == emp.id|string %}selected{% endif %}>
-              {{ emp.name }}
+              {{ emp.name }}{{ " / " ~ emp.phone if emp.phone else "" }}
             </option>
           {% endfor %}
         </select>

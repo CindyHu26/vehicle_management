@@ -1,0 +1,12 @@
+{% if show_none_option %}
+  <option value="">-- 無 (私車/雜項) --</option>
+{% else %}
+  <option value="">-- 請選擇車輛 --</option>
+{% endif %}
+
+{% for v in all_vehicles %}
+  <option value="{{ v.id }}" 
+    {% if preselected_vehicle_id == v.id %}selected{% endif %}>
+    {{ v.plate_no }} ({{ v.model or '' }})
+  </option>
+{% endfor %}

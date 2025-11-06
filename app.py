@@ -1870,6 +1870,43 @@ async def get_user_options(
         }
     )
 
+@app.get("/fragments/vehicle-options")
+async def get_vehicle_options(
+    request: Request,
+    user_id: Optional[UUID] = None, # 來自 hx-include
+    # (!!!) 1. 我們新增一個參數來控制「-- 無 --」選項
+    show_none_option: bool = False, 
+    db: Session = Depends(get_db)
+):
+    """
+    根據傳入的 user_id，回傳預選了主要車輛的 <option> 列表
+    """
+    preselected_vehicle_id: Optional[UUID] = None
+    all_vehicles = db.scalars(select(Vehicle).order_by(Vehicle.plate_no)).all()
+
+    # 1. 檢查 user_id 是否有效
+    if user_id:
+        # 2. 找出這位使用者的「主要車輛」
+        # (注意：這裡假設一位使用者只會有一台主要車輛)
+        user_vehicle = next(
+            (v for v in all_vehicles if v.user_id == user_id), 
+            None
+        )
+        if user_vehicle:
+            # 3. 取得該車輛的 ID
+            preselected_vehicle_id = user_vehicle.id
+    
+    # 4. 渲染「只有選項」的模板
+    return templates.TemplateResponse(
+        name="fragments/_vehicle_select_options.html", # (我們將在下一步建立此檔案)
+        context={
+            "request": request,
+            "all_vehicles": all_vehicles,
+            "preselected_vehicle_id": preselected_vehicle_id, # 傳遞預選 ID
+            "show_none_option": show_none_option # (!!!) 2. 傳遞此參數 (!!!)
+        }
+    )
+
 # --- 健康檢查 ---
 @app.get("/health")
 def health():
