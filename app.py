@@ -1,4 +1,3 @@
-# 檔案名稱: app.py
 # app.py
 import os
 import shutil
