@@ -87,8 +87,8 @@
             <option value="">-- 無 --</option>
             {% for emp in all_employees %}
               <option value="{{ emp.id }}"
-                {% if (insp and insp.user_id == emp.id) or
-                      (not insp and preselected_user_id == emp.id)
+                {% if (maint and maint.user_id == emp.id) or
+                      (not maint and preselected_user_id == emp.id)
                 %}selected{% endif %}>
                 {{ emp.name }}{{ " / " ~ emp.phone if emp.phone else "" }}
               </option>
