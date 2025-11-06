@@ -36,7 +36,7 @@
       <div>
         <label for="filter_user_id" class="block text-sm font-medium text-gray-700">當時使用人</label>
         <select name="filter_user_id" id="filter_user_id"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 searchable-select">
           <option value="">-- 所有人 --</option>
           {% for emp in all_employees %}
             <option value="{{ emp.id }}" {% if query_params.get('filter_user_id') == emp.id|string %}selected{% endif %}>

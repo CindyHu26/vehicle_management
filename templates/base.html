@@ -7,6 +7,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
 
@@ -93,6 +94,56 @@
     </div> 
     
     <div id="modal-container"></div>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+      // 封裝一個啟動函式
+      function initializeTomSelect(element) {
+        // 檢查它是否是 .searchable-select 且尚未被啟動
+        if (element.classList.contains('searchable-select') && !element.tomselect) {
+          
+          new TomSelect(element, {
+            create: false, // 不允許使用者新增選項
+            sortField: {
+              field: "text",
+              direction: "asc"
+            },
+
+            // (!!!) 這裡是「支援中文搜尋」的關鍵程式碼 (!!!)
+            // 我們覆蓋 Tom-Select 的評分(score)函式
+            score: function(search) {
+              // 取得預設的評分函式 (雖然我們不用它)
+              var score = this.getScoreFunction(search);
+              
+              return function(item) {
+                // 如果 search (搜尋文字) 是空的，顯示所有項目
+                if (search.length === 0) return 1;
+
+                // 檢查 item.text (選項文字) 是否「包含」 search (搜尋文字)
+                // 'indexOf' > -1 意思就是「包含」
+                // 這能讓我們用 "大明" 搜到 "王大明 / 0912..."
+                return (item.text.toLowerCase().indexOf(search.toLowerCase()) > -1) ? 1 : 0;
+              };
+            }
+            // (!!!) 中文搜尋程式碼結束 (!!!)
+
+          });
+        }
+      }
+
+      // 監聽 HTMX 載入內容的事件
+      document.body.addEventListener('htmx:afterOnLoad', function(event) {
+        // 啟動載入的根元素 (如果它自己就是 select)
+        initializeTomSelect(event.detail.elt);
+        
+        // 啟動載入的內容中所有的 .searchable-select
+        event.detail.elt.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
+      });
+      
+      // 也啟動頁面上已經存在的 .searchable-select (例如用在篩選器上)
+      document.querySelectorAll('.searchable-select').forEach(initializeTomSelect);
+
+    </script>
 
 </body>
 </html>

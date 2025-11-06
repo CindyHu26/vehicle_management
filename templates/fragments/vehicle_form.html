@@ -43,7 +43,7 @@
 
         <div>
           <label for="user_id" class="block text-sm font-medium text-gray-700">主要使用人</label>
-          <select name="user_id" id="user_id" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+          <select name="user_id" id="user_id" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 searchable-select">
             <option value="">-- 無 --</option>
             {% for emp in all_employees %}
               <option value="{{ emp.id }}" {% if vehicle and vehicle.user_id == emp.id %}selected{% endif %}>
