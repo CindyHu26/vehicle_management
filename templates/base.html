@@ -126,7 +126,7 @@
         sortField: { field: "text", direction: "asc" },
         plugins: ['dropdown_input'],
         openOnFocus: true,
-        closeAfterSelect: false,   // 建議先別關，方便連續輸入
+        closeAfterSelect: true,   // 建議先別關，方便連續輸入
         debounce: 100,
         score(search) {
             return function(item) {
