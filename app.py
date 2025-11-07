@@ -2117,16 +2117,26 @@ async def create_or_update_parking_assignment(
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
     # 觸發列表刷新
+    # 1. 準備給 JavaScript 的 showToast 事件
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "車位指派成功！", 
+            "level": "success",
+            "closeModal": True
+        }
+    })
+    
+    # 2. 準備給 HTMX 的 refreshParkingSpotsList 事件
+    htmx_trigger = "refreshParkingSpotsList"
+
+    # 3. 分別在不同的標頭中發送
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "車位指派成功！", 
-                "level": "success",
-                "closeModal": True
-            },
-            "refreshParkingSpotsList": True
-        })
+        "HX-Trigger": htmx_trigger,             # 給 HTMX 監聽器
+        "HX-Trigger-After-Settle": toast_event   # 給 JavaScript 監聽器 (在Settle後觸發)
     }
+    
+    print("!!!!!!!! 已發送分離的觸發器 !!!!!!!!")
+    
     return Response(status_code=200, headers=headers)
 
 @app.post("/parking-spot/{spot_id}/clear")

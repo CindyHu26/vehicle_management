@@ -213,7 +213,7 @@ def clean_bool(val):
 # --- (!!!) 4. 更新所有匯入函式 (!!!) ---
 
 def import_employees(session, file_path: str | Path):
-    print("\n--- 0. 開始匯入員工 ---")
+    print("--- 0. 開始匯入員工 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         name = clean_string(row.get('name'))
@@ -236,7 +236,7 @@ def import_employees(session, file_path: str | Path):
     print("--- 員工匯入完成 ---")
 
 def import_vehicles(session, file_path: str | Path):
-    print("\n--- 1. 開始匯入車輛 ---")
+    print("--- 1. 開始匯入車輛 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         plate_no = clean_string(row.get('plate_no'))
@@ -270,7 +270,7 @@ def import_vehicles(session, file_path: str | Path):
     print("--- 車輛匯入完成 ---")
 
 def import_maintenance(session, file_path: str | Path):
-    print("\n--- 2. 開始匯入保養維修 ---")
+    print("--- 2. 開始匯入保養維修 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         vehicle_id = get_vehicle_id(session, row.get('vehicle_plate_no'))
@@ -322,7 +322,7 @@ def import_maintenance(session, file_path: str | Path):
     print("--- 保養維修匯入完成 ---")
 
 def import_inspections(session, file_path: str | Path):
-    print("\n--- 3. 開始匯入檢驗 ---")
+    print("--- 3. 開始匯入檢驗 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         vehicle_id = get_vehicle_id(session, row.get('vehicle_plate_no'))
@@ -373,7 +373,7 @@ def import_inspections(session, file_path: str | Path):
     print("--- 檢驗匯入完成 ---")
 
 def import_fees(session, file_path: str | Path):
-    print("\n--- 4. 開始匯入「其他」費用 ---")
+    print("--- 4. 開始匯入「其他」費用 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         user_id = get_user_id(session, row.get('user_name'))
@@ -403,7 +403,7 @@ def import_fees(session, file_path: str | Path):
     print("--- 「其他」費用匯入完成 ---")
 
 def import_disposals(session, file_path: str | Path):
-    print("\n--- 5. 開始匯入報廢 ---")
+    print("--- 5. 開始匯入報廢 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         vehicle_id = get_vehicle_id(session, row.get('vehicle_plate_no'))
@@ -431,7 +431,7 @@ def import_disposals(session, file_path: str | Path):
     print("--- 報廢匯入完成 ---")
 
 def import_asset_log(session, file_path: str | Path):
-    print("\n--- 6. 開始匯入資產日誌 ---")
+    print("--- 6. 開始匯入資產日誌 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         vehicle_id = get_vehicle_id(session, row.get('vehicle_plate_no'))
@@ -457,7 +457,7 @@ def import_asset_log(session, file_path: str | Path):
 # (!!!) 5. 新增停車場匯入函式 (!!!)
 
 def import_parking_lots(session, file_path: str | Path):
-    print("\n--- 7. 開始匯入停車場 ---")
+    print("--- 7. 開始匯入停車場 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         name = clean_string(row.get('name'))
@@ -478,7 +478,7 @@ def import_parking_lots(session, file_path: str | Path):
     print("--- 停車場匯入完成 ---")
 
 def import_parking_spots(session, file_path: str | Path):
-    print("\n--- 8. 開始匯入停車位 ---")
+    print("--- 8. 開始匯入停車位 ---")
     df = load_dataframe(file_path)
     for _, row in df.iterrows():
         lot_name = clean_string(row.get('lot_name'))
