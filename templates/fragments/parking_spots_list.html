@@ -64,13 +64,16 @@
           {% endif %}
         </td>
 
-        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer"
+            hx-get="/parking-spot/{{ spot.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {{ spot.lot.name }}
         </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 cursor-pointer"
+            hx-get="/parking-spot/{{ spot.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {{ spot.spot_number }}
         </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm">
+        <td class="px-6 py-4 whitespace-nowrap text-sm cursor-pointer"
+            hx-get="/parking-spot/{{ spot.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {% if spot.status.value == 'empty' %}
             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
               {{ parking_status_map.get(spot.status.value) }}
@@ -81,7 +84,8 @@
             </span>
           {% endif %}
         </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 cursor-pointer"
+            hx-get="/parking-spot/{{ spot.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {% if spot.status.value == 'company_vehicle' and spot.assigned_vehicle %}
             {{ spot.assigned_vehicle.plate_no }} (公司車)
           {% elif spot.status.value == 'private_vehicle' and spot.assigned_employee %}
@@ -90,7 +94,8 @@
             --
           {% endif %}
         </td>
-        <td class="px-6 py-4 text-sm text-gray-700 truncate" style="max-width: 200px;">
+        <td class="px-6 py-4 text-sm text-gray-700 truncate cursor-pointer" style="max-width: 200px;"
+            hx-get="/parking-spot/{{ spot.id }}/edit" hx-target="#modal-container" hx-swap="beforeend">
           {{ spot.notes or '' }}
         </td>
       </tr>
