@@ -113,6 +113,19 @@
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
 
+        <div class="col-span-1">
+            <label for="period_start" class="block text-sm font-medium text-gray-700">費用區間 (起)</label>
+            <input type="date" name="period_start" id="period_start" 
+                   value="{{ fee.period_start.strftime('%Y-%m-%d') if fee and fee.period_start else '' }}" 
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div class="col-span-1">
+            <label for="period_end" class="block text-sm font-medium text-gray-700">費用區間 (迄)</label>
+            <input type="date" name="period_end" id="period_end" 
+                   value="{{ fee.period_end.strftime('%Y-%m-%d') if fee and fee.period_end else '' }}" 
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
         <div class="flex items-center pt-6">
             <input id="is_paid" name="is_paid" type="checkbox" value="True" 
                    {% if fee and fee.is_paid %}checked{% endif %}

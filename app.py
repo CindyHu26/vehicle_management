@@ -502,16 +502,18 @@ async def create_or_update_vehicle(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
     
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "車輛儲存成功！", 
+            "level": "success",
+            "closeModal": True
+        }
+    })
+    htmx_trigger = "refreshVehicleList, refreshVehicleDetailPage"
+    
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "車輛儲存成功！", 
-                "level": "success",
-                "closeModal": True
-            },
-            "refreshVehicleList": True,
-            "refreshVehicleDetailPage": True
-        })
+        "HX-Trigger": htmx_trigger,
+        "HX-Trigger-After-Settle": toast_event
     }
     return Response(status_code=200, headers=headers)
 
@@ -656,15 +658,18 @@ async def create_or_update_employee(
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
     # 觸發「員工」列表刷新
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "員工儲存成功！", 
+            "level": "success",
+            "closeModal": True
+        }
+    })
+    htmx_trigger = "refreshEmployeeList"
+    
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "員工儲存成功！", 
-                "level": "success",
-                "closeModal": True
-            },
-            "refreshEmployeeList": True
-        })
+        "HX-Trigger": htmx_trigger,
+        "HX-Trigger-After-Settle": toast_event
     }
     return Response(status_code=200, headers=headers)
 
@@ -922,16 +927,18 @@ async def create_or_update_maintenance(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "保養紀錄儲存成功！", 
+            "level": "success",
+            "closeModal": True
+        }
+    })
+    htmx_trigger = "refreshMaintenanceList, refreshMaintenanceListAll"
+    
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "保養紀錄儲存成功！", 
-                "level": "success",
-                "closeModal": True
-            },
-            "refreshMaintenanceList": True,
-            "refreshMaintenanceListAll": True
-        })
+        "HX-Trigger": htmx_trigger,
+        "HX-Trigger-After-Settle": toast_event
     }
     return Response(status_code=200, headers=headers)
 
@@ -1204,16 +1211,18 @@ async def create_or_update_inspection(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "檢驗紀錄儲存成功！", 
+            "level": "success",
+            "closeModal": True
+        }
+    })
+    htmx_trigger = "refreshInspectionList, refreshInspectionListAll"
+    
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "檢驗紀錄儲存成功！", 
-                "level": "success",
-                "closeModal": True
-            },
-            "refreshInspectionList": True,
-            "refreshInspectionListAll": True
-        })
+        "HX-Trigger": htmx_trigger,
+        "HX-Trigger-After-Settle": toast_event
     }
     return Response(status_code=200, headers=headers)
 
@@ -1413,10 +1422,13 @@ async def create_or_update_fee(
 
     fee_type: FeeType = Form(...),
     
-    # (!!!) 1. 將 date 和 Decimal 改為 str (!!!)
     amount: Optional[str] = Form(None),
     receive_date: Optional[str] = Form(None),
     request_date: Optional[str] = Form(None),
+    
+    # (!!!) 1. 接收新欄位 (!!!)
+    period_start: Optional[str] = Form(None),
+    period_end: Optional[str] = Form(None),
     
     is_paid: bool = Form(False),
     invoice_number: Optional[str] = Form(None),
@@ -1435,13 +1447,17 @@ async def create_or_update_fee(
         fee = Fee()
         db.add(fee)
 
-    # (!!!) 2. 手動轉換 str (!!!)
     fee.vehicle_id = vehicle_uuid
     fee.user_id = user_uuid
     fee.fee_type = fee_type
     fee.amount = Decimal(amount) if amount else None
     fee.receive_date = date.fromisoformat(receive_date) if receive_date else None
     fee.request_date = date.fromisoformat(request_date) if request_date else None
+    
+    # (!!!) 2. 儲存新欄位 (!!!)
+    fee.period_start = date.fromisoformat(period_start) if period_start else None
+    fee.period_end = date.fromisoformat(period_end) if period_end else None
+    
     fee.is_paid = is_paid
     fee.invoice_number = invoice_number
     fee.notes = notes
@@ -1453,16 +1469,18 @@ async def create_or_update_fee(
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
     # 觸發列表刷新
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "費用儲存成功！", 
+            "level": "success",
+            "closeModal": True
+        }
+    })
+    htmx_trigger = "refreshFeeList, refreshFeeListAll"
+    
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "費用儲存成功！", 
-                "level": "success",
-                "closeModal": True
-            },
-            "refreshFeeList": True,
-            "refreshFeeListAll": True
-        })
+        "HX-Trigger": htmx_trigger,
+        "HX-Trigger-After-Settle": toast_event
     }
     return Response(status_code=200, headers=headers)
 
@@ -1613,15 +1631,18 @@ async def create_or_update_asset_log(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "資產日誌儲存成功！", 
+            "level": "success",
+            "closeModal": True
+        }
+    })
+    htmx_trigger = "refreshAssetLogList"
+    
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "資產日誌儲存成功！", 
-                "level": "success",
-                "closeModal": True
-            },
-            "refreshAssetLogList": True
-        })
+        "HX-Trigger": htmx_trigger,
+        "HX-Trigger-After-Settle": toast_event
     }
     return Response(status_code=200, headers=headers)
 
@@ -1849,15 +1870,18 @@ async def upload_attachment(
             file_path.unlink()
         raise HTTPException(status_code=500, detail=f"資料庫錯誤: {e}")
 
+    toast_event = json.dumps({
+        "showToast": {
+            "message": "附件上傳成功！", 
+            "level": "success",
+            "closeModal": False
+        }
+    })
+    htmx_trigger = "refreshAttachmentsList"
+    
     headers = {
-        "HX-Trigger": json.dumps({
-            "showToast": {
-                "message": "附件上傳成功！", 
-                "level": "success",
-                "closeModal": False  # (!!!) 附件管理彈窗保持開啟 (!!!)
-            },
-            "refreshAttachmentsList": True
-        })
+        "HX-Trigger": htmx_trigger,
+        "HX-Trigger-After-Settle": toast_event
     }
     return Response(status_code=200, headers=headers)
 
