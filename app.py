@@ -14,6 +14,7 @@ from fastapi import (
     FastAPI, Request, Depends, Form, HTTPException, Response,
     File, UploadFile
 )
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates 
 from sqlalchemy import create_engine, or_, select, desc
@@ -30,6 +31,8 @@ from models import (
 )
 from config import settings, UPLOAD_PATH
 import json
+import import_data
+
 
 class InspectionReminder(BaseModel):
     vehicle: Vehicle
@@ -2223,7 +2226,8 @@ async def create_or_update_parking_lot(  # (!!!) 2. 重新命名 (!!!)
                 "closeModal": True
             },
             "refreshParkingManagementPage": True, # 刷新整頁
-            "refreshParkingLotList": True       # (!!!) 刷新停車場列表 (下一步會用到) (!!!)
+            "refreshParkingLotList": True,       # 刷新停車場列表
+            "refreshParkingSpotsList": True
         })
     }
     return Response(status_code=200, headers=headers)
@@ -2256,7 +2260,8 @@ async def delete_parking_lot(
                 "closeModal": False # (因為這不是在彈窗中觸發的)
             },
             "refreshParkingManagementPage": True, # 刷新整頁 (更新篩選器)
-            "refreshParkingLotList": True       # 刷新停車場列表
+            "refreshParkingLotList": True,       # 刷新停車場列表
+            "refreshParkingSpotsList": True
         })
     }
     return Response(status_code=200, headers=headers)
@@ -2416,6 +2421,133 @@ async def delete_parking_spot(
 
     # 刪除成功，HTMX 會自動移除該行，不需要回傳 HX-Trigger
     return Response(status_code=200)
+
+@app.get("/import-export-management")
+async def get_import_export_page(request: Request):
+    """
+    渲染「資料匯入/匯出」的主頁面。
+    """
+    return templates.TemplateResponse(
+        name="pages/import_export.html",
+        context={"request": request}
+    )
+
+@app.get("/download/template/{template_name}")
+async def download_template(template_name: str):
+    """
+    提供範本 CSV 檔案下載。
+    """
+    safe_name_map = {
+        "employees": "import_employees.csv",
+        "vehicles": "import_vehicles.csv",
+        "maintenance": "import_maintenance.csv",
+        "inspections": "import_inspections.csv",
+        "fees": "import_fees.csv",
+        "disposals": "import_disposals.csv",
+        "asset_log": "import_asset_log.csv",
+        "parking_lots": "import_parking_lots.csv",      # (!!!) 新增 (!!!)
+        "parking_spots": "import_parking_spots.csv"  # (!!!) 新增 (!!!)
+    }
+    
+    if template_name not in safe_name_map:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    file_name = safe_name_map[template_name]
+    file_path = Path("import_templates") / file_name
+    
+    if not file_path.exists():
+        print(f"Error: Template file not found at {file_path}")
+        raise HTTPException(status_code=404, detail="Template file not found on server")
+    
+    # (!!!) 提示：這裡我們提供 CSV 範本，但使用者可以用 Excel 開啟並另存為 .xlsx 上傳 (!!!)
+    return FileResponse(
+        path=file_path,
+        filename=file_name,
+        media_type='text/csv'
+    )
+
+@app.post("/upload/import-data")
+async def upload_import_data(
+    request: Request,
+    data_type: str = Form(...),
+    file: UploadFile = File(...)
+):
+    """
+    (!!!) 新版本 (!!!)
+    接收上傳的 CSV/XLSX 檔案，儲存為暫存檔，
+    並執行對應的 import_data 函式。
+    """
+    
+    # 1. 檢查檔案類型
+    allowed_suffixes = [".csv", ".xlsx", ".xls"]
+    file_suffix = Path(file.filename).suffix.lower()
+    if file_suffix not in allowed_suffixes:
+        raise HTTPException(status_code=400, detail=f"不支援的檔案格式: {file_suffix}。僅支援 .csv, .xlsx, .xls")
+
+    # 2. 匯入函式地圖 (!!!) 這是關鍵 (!!!)
+    import_func_map = {
+        "employees": import_data.import_employees,
+        "vehicles": import_data.import_vehicles,
+        "maintenance": import_data.import_maintenance,
+        "inspections": import_data.import_inspections,
+        "fees": import_data.import_fees,
+        "disposals": import_data.import_disposals,
+        "asset_log": import_data.import_asset_log,
+        "parking_lots": import_data.import_parking_lots,      # (!!!) 新增 (!!!)
+        "parking_spots": import_data.import_parking_spots  # (!!!) 新增 (!!!)
+    }
+
+    if data_type not in import_func_map:
+        raise HTTPException(status_code=400, detail="無效的資料類型")
+    
+    # 3. 建立一個安全的暫存檔案路徑
+    # 我們將檔案儲存在 UPLOAD_PATH 中，以確保
+    temp_filename = f"temp_import_{uuid4()}{file_suffix}"
+    temp_file_path = UPLOAD_PATH / temp_filename
+
+    try:
+        # 4. 儲存上傳的檔案到暫存位置
+        with temp_file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # 5. 取得要呼叫的函式
+        import_function = import_func_map[data_type]
+        
+        # 6. (!!!) 執行匯入 (!!!)
+        # 我們使用 import_data.py 自己的 session_scope
+        # 並將「暫存檔案的路徑」傳遞過去
+        with import_data.session_scope() as session:
+            import_function(session, temp_file_path)
+        
+        message = f"成功匯入 {file.filename} ({data_type}) 資料！"
+        level = "success"
+
+    except FileNotFoundError as e:
+        message = f"匯入失敗：找不到檔案 {e}"
+        level = "danger"
+    except Exception as e:
+        # 如果匯入過程出錯（例如資料格式錯誤、查找失敗），會在這裡捕捉到
+        print(f"匯入時發生嚴重錯誤: {e}")
+        message = f"匯入 {file.filename} 失敗: {e}"
+        level = "danger"
+    
+    finally:
+        # 7. (!!!) 無論成功或失敗，都要刪除暫存檔案 (!!!)
+        if temp_file_path.exists():
+            try:
+                os.remove(temp_file_path)
+                print(f"已刪除暫存檔案: {temp_file_path}")
+            except Exception as e:
+                print(f"刪除暫存檔案 {temp_file_path} 失敗: {e}")
+        file.file.close()
+
+    # 8. 回傳 Toast 訊息
+    headers = {
+        "HX-Trigger": json.dumps({
+            "showToast": {"message": message, "level": level}
+        })
+    }
+    return Response(status_code=200, headers=headers)
 
 # --- 健康檢查 ---
 @app.get("/health")

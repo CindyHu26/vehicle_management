@@ -1,0 +1,112 @@
+<div>
+  <h2 class="text-3xl font-bold text-gray-800 mb-6">
+    資料匯入 / 匯出
+  </h2>
+
+  <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">下載匯入範本 (CSV)</h3>
+    <p class="text-sm text-gray-600 mb-4">
+      請下載對應的 CSV 範本檔案 (可用 Excel 開啟)，填寫完畢後，再透過下方的「上傳資料」功能匯入 (可上傳 .csv 或 .xlsx)。
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      
+      <a href="/download/template/employees" download="import_employees.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        1. 員工範本
+      </a>
+      <a href="/download/template/vehicles" download="import_vehicles.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        2. 車輛範本
+      </a>
+      <a href="/download/template/maintenance" download="import_maintenance.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        3. 保養範本
+      </a>
+      <a href="/download/template/inspections" download="import_inspections.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        4. 檢驗範本
+      </a>
+      <a href="/download/template/fees" download="import_fees.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        5. 費用範本
+      </a>
+      <a href="/download/template/disposals" download="import_disposals.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        6. 報廢範本
+      </a>
+      <a href="/download/template/asset_log" download="import_asset_log.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        7. 資產日誌範本
+      </a>
+      <a href="/download/template/parking_lots" download="import_parking_lots.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        8. 停車場範本
+      </a>
+      <a href="/download/template/parking_spots" download="import_parking_spots.csv"
+         class="block w-full text-center bg-gray-600 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition duration-300">
+        9. 停車位範本
+      </a>
+    </div>
+  </div>
+
+  <div class="bg-white shadow-md rounded-lg p-6">
+    <h3 class="text-xl font-semibold text-gray-700 mb-4">上傳資料 (CSV / XLSX)</h3>
+    <form
+      hx-post="/upload/import-data"
+      hx-encoding="multipart/form-data"
+      hx-swap="none"
+      hx-on:htmx:afterOnLoad="this.reset(); document.getElementById('file-upload-filename').textContent = '尚未選擇檔案';"
+    >
+      <div class="space-y-4">
+        <div>
+          <label for="data_type" class="block text-sm font-medium text-gray-700">1. 選擇資料類型 (必須與範本對應)</label>
+          <select name="data_type" id="data_type" required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- 請選擇 --</option>
+            <option value="employees">1. 員工資料</option>
+            <option value="vehicles">2. 車輛資料</option>
+            <option value="maintenance">3. 保養資料</option>
+            <option value="inspections">4. 檢驗資料</option>
+            <option value="fees">5. 費用資料</option>
+            <option value="disposals">6. 報廢資料</option>
+            <option value="asset_log">7. 資產日誌</option>
+            <option value="parking_lots">8. 停車場資料</option>
+            <option value="parking_spots">9. 停車位資料</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">2. 選擇 檔案</label>
+          <label class="mt-1 flex justify-center w-full px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500">
+            <div class="space-y-1 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="True">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <div class="flex text-sm text-gray-600">
+                <span class="relative bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                  <span>上傳檔案</span>
+                  <input id="file-upload" name="file" type="file" class="sr-only" required 
+                         accept=".csv,.xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                         onchange="document.getElementById('file-upload-filename').textContent = this.files[0] ? this.files[0].name : '尚未選擇檔案';">
+                </span>
+                <p class="pl-1">或拖曳到此</p>
+              </div>
+              <p class="text-xs text-gray-500" id="file-upload-filename">
+                尚未選擇檔案 (僅限 .csv, .xlsx, .xls)
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end">
+        <button type="submit"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
+                hx-confirm="確認上傳並執行匯入嗎？這將會新增資料到資料庫中。"
+        >
+          開始匯入
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

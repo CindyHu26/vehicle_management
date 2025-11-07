@@ -12,3 +12,4 @@ pydantic-settings
 jinja2
 python-dotenv
 pandas
+openpyxl
