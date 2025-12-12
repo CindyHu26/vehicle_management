@@ -8,7 +8,7 @@ from datetime import date
 from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from fastapi import (
     FastAPI, Request, Depends, Form, HTTPException, Response,
@@ -35,23 +35,19 @@ import import_data
 
 
 class InspectionReminder(BaseModel):
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
     vehicle: Vehicle
     status: str
     last_inspection_date: Optional[date]
     next_due_date: Optional[date]
     is_overdue: bool
 
-    class Config:
-        arbitrary_types_allowed = True
-
 class MaintenanceReminder(BaseModel):
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
     vehicle: Vehicle
     status: str
     last_maintenance_date: Optional[date]
     last_maintenance_km: Optional[int]
-
-    class Config:
-        arbitrary_types_allowed = True
 
 # 翻譯字典
 VEHICLE_TYPE_MAP = {

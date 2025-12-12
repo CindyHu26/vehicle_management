@@ -13,3 +13,4 @@ jinja2
 python-dotenv
 pandas
 openpyxl
+uvicorn
